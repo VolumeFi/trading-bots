@@ -74,6 +74,7 @@ def findbestreturn(dex='apeswap_bsc'):
         vols1=filerpairs(vols, volume=1e3)
     else:
         print('no query')
+        return 
         
     rets24h = findrets24h(vols1)
     rets24h = rets24h.sort_values(by='24H Return',ascending=False)
