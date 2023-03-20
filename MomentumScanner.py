@@ -4,13 +4,21 @@ import time
 
 def querydex(dex):
     url = 'https://api.coingecko.com/api/v3/exchanges/' + dex
-    re = requests.get(url)
-    return re
+    try:
+        re = requests.get(url, timeout=10)
+        return re
+    except:
+        print('timed out')
+        return None
 
 def querytokenprice1d(token):
     url = 'https://api.coingecko.com/api/v3/coins/'+token+'/market_chart?vs_currency=usd&days=1'
-    re = requests.get(url)
-    return re
+    try:
+        re = requests.get(url, timeout=10)
+        return re
+    except:
+        print('timed out')
+        return None
 
 def tokenreturn24h(token):
     query = querytokenprice1d(token)
@@ -80,12 +88,12 @@ def findbestreturn(dex='apeswap_bsc'):
     rets24h = rets24h.sort_values(by='24H Return',ascending=False)
     rets24h['24H Return'] = rets24h['24H Return'].apply(lambda x: str(round(x*100,2))+'%')
     
-    print(dex,' top winners: ')
-    print(rets24h)
-    print('* * * * *')
-    print('Hottest token in the past 24H: ')
-    print(rets24h.index[0], ', 24H return: ', rets24h['24H Return'].iloc[0])
-    print('----------------------------------------------')
+    print(dex,' top winners: ', flush=True)
+    print(rets24h, flush=True)
+    print('* * * * *', flush=True)
+    print('Hottest token in the past 24H: ', flush=True)
+    print(rets24h.index[0], ', 24H return: ', rets24h['24H Return'].iloc[0], flush=True)
+    print('----------------------------------------------', flush=True)
 
 if __name__ == '__main__':
     findbestreturn(dex='apeswap_bsc')
