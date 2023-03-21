@@ -36,7 +36,17 @@ def tokenreturn24h(token):
         ret24h = (closeprice - openprice) / openprice
         return ret24h
 
-def queryvolumes(dex, n_pairs=10):
+def tokenprice(token):
+    query = querytokenprice1d(token)
+    try:
+        prices = query.json()['prices']
+    except:
+        return 0
+    
+    price = prices[-1][1]
+    return price
+
+def queryvolumes(dex):
     query = querydex(dex)
     try:
         dexdata = query.json()['tickers']
@@ -48,7 +58,7 @@ def queryvolumes(dex, n_pairs=10):
         id_ = i['coin_id'] + '<>' + i['target_coin_id']
         vols.loc[id_] = i['converted_volume']['usd']
         
-    return vols.sort_values(ascending=False).head(n_pairs)
+    return vols.sort_values(ascending=False)
 
 def filerpairs(vols, volume=1e5):
     vols = vols[vols >= volume]
@@ -76,25 +86,49 @@ def findrets24h(vols):
     rets24h.index.name = 'Token name'
     return rets24h
 
-def findbestreturn(dex='apeswap_bsc'):
-    vols = queryvolumes(dex, n_pairs=10)
+def getrisk(price, stoploss, profittaking):
+    slprice = price * (1 - stoploss)
+    ptprice = price * (1 + profittaking)
+    return slprice, ptprice
+
+def gettrades(token, stoploss, profittaking):
+    price = tokenprice(token)
+    sl, pt = getrisk(price, stoploss, profittaking)
+    return price, sl, pt
+
+def findbestreturn(dex, stoploss, profittaking):
+    vols = queryvolumes(dex)
     if len(vols) != 0:
-        vols1=filerpairs(vols, volume=1e3)
+        vols1=filerpairs(vols, volume=1e5)
+        if len(vols1) == 0:
+            print('No pair found with enough volume')
+            return
+        else:
+            vols1 = vols1.iloc[:5]
     else:
-        print('no query')
+        print('Endpoint issues, query did not get any returned values')
         return 
         
     rets24h = findrets24h(vols1)
     rets24h = rets24h.sort_values(by='24H Return',ascending=False)
     rets24h['24H Return'] = rets24h['24H Return'].apply(lambda x: str(round(x*100,2))+'%')
+    hottoken = rets24h.index[0]
+    time.sleep(1)
+    enterprice, sl, pt = gettrades(str(hottoken), stoploss, profittaking)
     
     print(dex,' top winners: ', flush=True)
     print(rets24h, flush=True)
     print('* * * * *', flush=True)
     print('Hottest token in the past 24H: ', flush=True)
-    print(rets24h.index[0], ', 24H return: ', rets24h['24H Return'].iloc[0], flush=True)
+    print(hottoken, ', 24H return: ', rets24h['24H Return'].iloc[0], flush=True)
+    if enterprice != 0:
+        print('Enter at: ', enterprice,flush=True)
+        print('Stop-loss at: ', sl, ' (stop loss percentage: ', stoploss,')', flush=True)
+        print('Profit-taking at: ', pt,' (profit taking percentage: ', profittaking,')', flush=True)
+    else:
+        print('Enter price, stop-loss and profit-taking calculation failed due to endpoint issue', flush=True)
     print('----------------------------------------------', flush=True)
 
 if __name__ == '__main__':
-    findbestreturn(dex='apeswap_bsc')
-    findbestreturn(dex='pancakeswap_new')
+    #findbestreturn(dex='apeswap_bsc')
+    findbestreturn(dex='pancakeswap_new', stoploss=0.05, profittaking=0.05)
