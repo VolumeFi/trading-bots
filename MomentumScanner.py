@@ -151,6 +151,7 @@ def findbestreturn(dex, stoploss, profittaking):
         
     rets24h = findrets24h(vols1)
     rets24h = rets24h.sort_values(by='24H Return',ascending=False)
+    rets24h = rets24h[rets24h['24H Return']>=0]
 #    rets24h['24H Return'] = rets24h['24H Return'].apply(lambda x: str(round(x*100,2))+'%')
     rets24h['24H Return'] = rets24h['24H Return'].apply(lambda x: str(round(x,2))+'%')
     hottoken = rets24h.index[0]
