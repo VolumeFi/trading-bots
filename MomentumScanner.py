@@ -1,6 +1,6 @@
 import requests
 import pandas as pd
-import time
+import time, sys
 
 def querydex(dex):
     url = 'https://api.coingecko.com/api/v3/exchanges/' + dex
@@ -66,16 +66,56 @@ def filerpairs(vols, volume=1e5):
 
 def findtoken(pair):
     a = pair.split('<>')
-    if a[0] in ['wbnb','binance-usd']:
+    if a[0] in ['wbnb','binance-usd','weth']:
         return a[1]
     else:
         return a[0]
-    
+
+def querytokens_price1d(tokens):
+    token_ids = ''
+    for i,token in enumerate(tokens):
+        if i == len(tokens) - 1:
+            token_ids += token
+        else:
+            token_ids += token + '%2C'
+    url = 'https://api.coingecko.com/api/v3/simple/price?ids='+token_ids+'&vs_currencies=usd&include_24hr_change=true'
+    #print(url)
+    try:
+        re = requests.get(url, timeout=10)
+        return re
+    except:
+        print('timed out')
+        return None
+
+def tokens_ret24h(tokens):
+    query = querytokens_price1d(tokens)
+    ret24 = pd.DataFrame()
+    try:
+        q = query.json()
+        for k in q.keys():
+            ret24.loc[k,'24H Return'] = q[k]['usd_24h_change']
+    except Exception as e:
+        print('error:',e)
+        pass
+    return ret24
+
 def findrets24h(vols):
+    tokens = []
+    rets24h = pd.DataFrame()
+    for pair in vols.index:
+        if 'wbnb' in pair or 'binance-usd' in pair or 'weth' in pair:
+            token = findtoken(pair)
+            if token not in tokens:
+                tokens.append(token)
+    rets24h = tokens_ret24h(tokens)
+    rets24h.index.name = 'Token name'
+    return rets24h
+
+def findrets24h_old(vols):
     scanned = []
     rets24h = pd.DataFrame()
     for pair in vols.index:
-        if 'wbnb' in pair or 'binance-usd' in pair:
+        if 'wbnb' in pair or 'binance-usd' in pair or 'weth' in pair:
             token = findtoken(pair)
             if token not in scanned:
                 ret24h = round(tokenreturn24h(token),3)
@@ -104,14 +144,15 @@ def findbestreturn(dex, stoploss, profittaking):
             print('No pair found with enough volume')
             return
         else:
-            vols1 = vols1.iloc[:5]
+            vols1 = vols1
     else:
         print('Endpoint issues, query did not get any returned values')
         return 
         
     rets24h = findrets24h(vols1)
     rets24h = rets24h.sort_values(by='24H Return',ascending=False)
-    rets24h['24H Return'] = rets24h['24H Return'].apply(lambda x: str(round(x*100,2))+'%')
+#    rets24h['24H Return'] = rets24h['24H Return'].apply(lambda x: str(round(x*100,2))+'%')
+    rets24h['24H Return'] = rets24h['24H Return'].apply(lambda x: str(round(x,2))+'%')
     hottoken = rets24h.index[0]
     time.sleep(1)
     enterprice, sl, pt = gettrades(str(hottoken), stoploss, profittaking)
@@ -130,5 +171,9 @@ def findbestreturn(dex, stoploss, profittaking):
     print('----------------------------------------------', flush=True)
 
 if __name__ == '__main__':
-    #findbestreturn(dex='apeswap_bsc')
-    findbestreturn(dex='pancakeswap_new', stoploss=0.05, profittaking=0.05)
+    #findbestreturn(dex='apeswap_bsc', stoploss=0.05, profittaking=0.05)
+    args = sys.argv
+    if len(args) == 1:
+        findbestreturn(dex='pancakeswap_new', stoploss=0.05, profittaking=0.05)
+    elif len(args) == 2:
+        findbestreturn(dex=str(sys.argv[1]), stoploss=0.05, profittaking=0.05)
