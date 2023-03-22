@@ -12,11 +12,10 @@ $pip install requests
 ```
 To use the script to scan a DEX: 
 ```
-from MomentumScanner import findbestreturn
-print(findbestreturn('DEX NAME'))
+$python MomentumScanner.py DEXname
 ```
 
-You can also run a test scan on ApeSwap and Pancakeswap on BSC:
+The script currently supports the following DEXname's:
 ```
-$python MomentumScanner.py
+pancakeswap_new, apeswap_bsc, uniswap_v2, mdex_bsc, biswap, babyswap, babydogeswap
 ```
