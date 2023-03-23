@@ -131,6 +131,17 @@ def getrisk(price, stoploss, profittaking):
     ptprice = price * (1 + profittaking)
     return slprice, ptprice
 
+def getriskquery(token, stoploss=0.05, profittaking=0.05):
+    re = querytokens_price1d([token])
+    try:
+        price = re.json()[token]['usd']
+        slprice = price * (1 - stoploss)
+        ptprice = price * (1 + profittaking)
+        print('enter at:',price, 'stop-loss:',slprice,'profit-taking:',ptprice)
+        #return slprice, ptprice
+    except:
+        print('query failed, try again shortly')
+
 def gettrades(token, stoploss, profittaking):
     price = tokenprice(token)
     sl, pt = getrisk(price, stoploss, profittaking)
@@ -144,7 +155,7 @@ def findbestreturn(dex, stoploss, profittaking):
             print('No pair found with enough volume')
             return
         else:
-            vols1 = vols1
+            vols1 = vols1#.iloc[1:]
     else:
         print('Endpoint issues, query did not get any returned values')
         return 
