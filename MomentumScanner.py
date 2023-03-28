@@ -1,9 +1,14 @@
 import requests
 import pandas as pd
-import time, sys
+import time, sys, os
+
+#apiroot = 'https://api.coingecko.com/api/v3'
+#apikey = ''
+apiroot = 'https://pro-api.coingecko.com/api/v3'
+apikey = 'x_cg_pro_api_key=' + os.environ['CG_KEY']
 
 def querydex(dex):
-    url = 'https://api.coingecko.com/api/v3/exchanges/' + dex
+    url = apiroot + '/exchanges/' + dex + '?' + apikey
     try:
         re = requests.get(url, timeout=10)
         return re
@@ -12,7 +17,7 @@ def querydex(dex):
         return None
 
 def querytokenprice1d(token):
-    url = 'https://api.coingecko.com/api/v3/coins/'+token+'/market_chart?vs_currency=usd&days=1'
+    url = apiroot + '/coins/'+token+'/market_chart?vs_currency=usd&days=1' + '&' + apikey
     try:
         re = requests.get(url, timeout=10)
         return re
@@ -78,7 +83,7 @@ def querytokens_price1d(tokens):
             token_ids += token
         else:
             token_ids += token + '%2C'
-    url = 'https://api.coingecko.com/api/v3/simple/price?ids='+token_ids+'&vs_currencies=usd&include_24hr_change=true'
+    url = apiroot + '/simple/price?ids='+token_ids+'&vs_currencies=usd&include_24hr_change=true' + '&' + apikey
     #print(url)
     try:
         re = requests.get(url, timeout=10)
@@ -108,21 +113,6 @@ def findrets24h(vols):
             if token not in tokens:
                 tokens.append(token)
     rets24h = tokens_ret24h(tokens)
-    rets24h.index.name = 'Token name'
-    return rets24h
-
-def findrets24h_old(vols):
-    scanned = []
-    rets24h = pd.DataFrame()
-    for pair in vols.index:
-        if 'wbnb' in pair or 'binance-usd' in pair or 'weth' in pair:
-            token = findtoken(pair)
-            if token not in scanned:
-                ret24h = round(tokenreturn24h(token),3)
-                scanned.append(token)
-                rets24h.loc[token,'24H Return'] = ret24h
-
-                time.sleep(0.1)
     rets24h.index.name = 'Token name'
     return rets24h
 
