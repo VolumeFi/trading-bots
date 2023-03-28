@@ -24,6 +24,15 @@ def querytokenprice1d(token):
     except:
         print('timed out')
         return None
+    
+def querycoin(coin):
+    url = 'https://pro-api.coingecko.com/api/v3/coins/'+coin+'?'+apikey
+    try:
+        re = requests.get(url, timeout=10)
+        return re
+    except:
+        print('timed out')
+        return None
 
 def tokenreturn24h(token):
     query = querytokenprice1d(token)
@@ -104,6 +113,17 @@ def tokens_ret24h(tokens):
         pass
     return ret24
 
+def add_7drets(df):
+    df['7D Return'] = None
+    for i in df.index:
+        try:
+            re = querycoin(i)
+            ret7d = re.json()['market_data']['price_change_percentage_7d']
+            df.loc[i,'7D Return'] = ret7d
+        except:
+            df.loc[i,'7D Return'] = None
+    return df
+
 def findrets24h(vols):
     tokens = []
     rets24h = pd.DataFrame()
@@ -137,6 +157,14 @@ def gettrades(token, stoploss, profittaking):
     sl, pt = getrisk(price, stoploss, profittaking)
     return price, sl, pt
 
+def findliquidity(coin, dex):
+    re = querycoin(coin)
+    for ticker in re.json()['tickers']:
+        if ticker['market']['identifier'] == dex:
+            #print('DEX: ',ticker['market']['identifier'],ticker['volume'])
+            print('DEX: ',ticker['market']['identifier'],
+                  ', Pair: ',ticker['target_coin_id'],'<>',ticker['coin_id'],', Volume: ',ticker['volume'])
+
 def findbestreturn(dex, stoploss, profittaking):
     vols = queryvolumes(dex)
     if len(vols) != 0:
@@ -153,8 +181,13 @@ def findbestreturn(dex, stoploss, profittaking):
     rets24h = findrets24h(vols1)
     rets24h = rets24h.sort_values(by='24H Return',ascending=False)
     rets24h = rets24h[rets24h['24H Return']>=0]
+    rets24h = add_7drets(rets24h)
 #    rets24h['24H Return'] = rets24h['24H Return'].apply(lambda x: str(round(x*100,2))+'%')
     rets24h['24H Return'] = rets24h['24H Return'].apply(lambda x: str(round(x,2))+'%')
+    try:
+        rets24h['7D Return'] = rets24h['7D Return'].apply(lambda x: str(round(x,2))+'%')
+    except:
+        pass
     hottoken = rets24h.index[0]
     time.sleep(1)
     enterprice, sl, pt = gettrades(str(hottoken), stoploss, profittaking)
@@ -170,6 +203,9 @@ def findbestreturn(dex, stoploss, profittaking):
         print('Profit-taking at: ', pt,' (profit taking percentage: ', profittaking,')', flush=True)
     else:
         print('Enter price, stop-loss and profit-taking calculation failed due to endpoint issue', flush=True)
+    print('* * * * *', flush=True)
+    print('liquidity profile: ', flush=True)
+    findliquidity(hottoken, dex)
     print('----------------------------------------------', flush=True)
 
 if __name__ == '__main__':
