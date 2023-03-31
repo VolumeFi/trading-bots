@@ -1,6 +1,7 @@
 import requests
 import pandas as pd
 import time, sys, os
+import argparse
 
 #apiroot = 'https://api.coingecko.com/api/v3'
 #apikey = ''
@@ -74,7 +75,7 @@ def queryvolumes(dex):
         
     return vols.sort_values(ascending=False)
 
-def filerpairs(vols, volume=1e5):
+def filterpairs(vols, volume=1e5):
     vols = vols[vols >= volume]
     return vols
 
@@ -165,10 +166,10 @@ def findliquidity(coin, dex):
             print('DEX: ',ticker['market']['identifier'],
                   ', Pair: ',ticker['target_coin_id'],'<>',ticker['coin_id'],', Volume: ',ticker['volume'])
 
-def findbestreturn(dex, stoploss, profittaking):
+def findbestreturn(dex, stoploss, profittaking, neg7D):
     vols = queryvolumes(dex)
     if len(vols) != 0:
-        vols1=filerpairs(vols, volume=1e5)
+        vols1=filterpairs(vols, volume=1e5)
         if len(vols1) == 0:
             print('No pair found with enough volume')
             return
@@ -184,10 +185,17 @@ def findbestreturn(dex, stoploss, profittaking):
     rets24h = add_7drets(rets24h)
 #    rets24h['24H Return'] = rets24h['24H Return'].apply(lambda x: str(round(x*100,2))+'%')
     rets24h['24H Return'] = rets24h['24H Return'].apply(lambda x: str(round(x,2))+'%')
+    if neg7D:
+        rets24h = rets24h[rets24h['7D Return']<0]
+        if len(rets24h) == 0:
+            print('No hot tokens with negative 7D return')
+            return
+
     try:
         rets24h['7D Return'] = rets24h['7D Return'].apply(lambda x: str(round(x,2))+'%')
     except:
         pass
+
     hottoken = rets24h.index[0]
     time.sleep(1)
     enterprice, sl, pt = gettrades(str(hottoken), stoploss, profittaking)
@@ -211,7 +219,14 @@ def findbestreturn(dex, stoploss, profittaking):
 if __name__ == '__main__':
     #findbestreturn(dex='apeswap_bsc', stoploss=0.05, profittaking=0.05)
     args = sys.argv
+
+    if 'neg7D' in args:
+        neg7D = True
+        args.remove('neg7D')
+    else:
+        neg7D = False
+
     if len(args) == 1:
-        findbestreturn(dex='pancakeswap_new', stoploss=0.05, profittaking=0.05)
+        findbestreturn(dex='pancakeswap_new', stoploss=0.05, profittaking=0.05,neg7D=neg7D)
     elif len(args) == 2:
-        findbestreturn(dex=str(sys.argv[1]), stoploss=0.05, profittaking=0.05)
+        findbestreturn(dex=str(sys.argv[1]), stoploss=0.05, profittaking=0.05,neg7D=neg7D)
