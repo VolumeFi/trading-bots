@@ -216,7 +216,7 @@ def findbestreturn(dex, stoploss, profittaking, lag):
     lag_col = str(lag)+'H Return'
     vols = queryvolumes(dex)
     if len(vols) != 0:
-        vols1=filterpairs(vols, volume=1e5)
+        vols1=filterpairs(vols, volume=150000)
         if len(vols1) == 0:
             print('No pair found with enough volume')
             return
