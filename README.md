@@ -14,6 +14,11 @@ To use the script to scan a DEX:
 ```
 $python MomentumScanner.py DEXname
 ```
+Scan intraday returns for a DEX:
+```
+$python MomentumScanner_intraday.py DEX Hours
+```
+Hours is an integer between 1 and 23. 
 
 The script currently supports the following DEXname's:
 ```
