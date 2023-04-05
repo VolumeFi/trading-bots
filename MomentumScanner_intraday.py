@@ -14,7 +14,7 @@ def conv_dt_rev(dt_int):
     """
     return datetime.datetime(1970,1,1,0,0,0)+datetime.timedelta(seconds=int(dt_int)/1e3)
 
-def parse_intradayprice(pr):
+def parse_price(pr):
     df = pd.DataFrame()
     for i in pr:
         dt_ = conv_dt_rev(i[0])
@@ -34,6 +34,15 @@ def querydex(dex):
 
 def querytokenprice1d(token):
     url = apiroot + '/coins/'+token+'/market_chart?vs_currency=usd&days=1' + '&' + apikey
+    try:
+        re = requests.get(url, timeout=10)
+        return re
+    except:
+        print('timed out')
+        return None
+
+def querytokenprice100d(token):
+    url = apiroot + '/coins/'+token+'/market_chart?vs_currency=usd&days=100' + '&' + apikey
     try:
         re = requests.get(url, timeout=10)
         return re
@@ -72,7 +81,7 @@ def tokenreturn_intraday(token, lag):
         pr = re.json()
         pr = pr['prices']
 
-        df = parse_intradayprice(pr)
+        df = parse_price(pr)
         df = df.sort_index()
         current = df.index[-1]
         prback = df['price'].asof(current - datetime.timedelta(hours=lag))
@@ -81,6 +90,23 @@ def tokenreturn_intraday(token, lag):
         #print(prback, prcurrent)
 
         return ret
+    except Exception as e:
+        print(e)
+        return 0
+
+def token_technical_indicator(token):
+    re = querytokenprice100d(token)
+    try:
+        pr = re.json()
+        pr = pr['prices']
+
+        df = parse_price(pr)
+        df = df.sort_index()
+        exp_short = df['price'].ewm(span = 12, adjust = False).mean()
+        exp_long = df['price'].ewm(span = 26, adjust = False).mean()
+        macd = (exp_short - exp_long) /  exp_long
+
+        return macd.iloc[-1]
     except Exception as e:
         print(e)
         return 0
@@ -166,7 +192,19 @@ def add_intraday_rets(df,lag):
         try:
             intra_ret = tokenreturn_intraday(i, lag)
             df.loc[i,col_name] = intra_ret
-            time.sleep(0.01)
+            #time.sleep(0.01)
+        except:
+            df.loc[i,col_name] = None
+    return df
+
+def add_technical_indicators(df):
+    col_name = 'macd_ratio'
+    df[col_name] = None
+    for i in df.index:
+        try:
+            macd = token_technical_indicator(i)
+            df.loc[i,col_name] = macd
+            #time.sleep(0.01)
         except:
             df.loc[i,col_name] = None
     return df
@@ -231,6 +269,7 @@ def findbestreturn(dex, stoploss, profittaking, lag):
     df = df[df['24H Return']>=0]
     df = add_7drets(df)
     df = add_intraday_rets(df,lag)
+    df = add_technical_indicators(df)
     df = df.sort_values(by=lag_col,ascending=False)
 
     df['24H Return'] = df['24H Return'].apply(lambda x: str(round(x,2))+'%')
