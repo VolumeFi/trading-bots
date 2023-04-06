@@ -269,7 +269,7 @@ def findbestreturn(dex, stoploss, profittaking, lag):
     df = df[df['24H Return']>=0]
     df = add_7drets(df)
     df = add_intraday_rets(df,lag)
-    df = add_technical_indicators(df)
+    #df = add_technical_indicators(df)
     df = df.sort_values(by=lag_col,ascending=False)
 
     df['24H Return'] = df['24H Return'].apply(lambda x: str(round(x,2))+'%')
