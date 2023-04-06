@@ -10,17 +10,22 @@ The script requires two libs: pandas, requests
 $pip install pandas
 $pip install requests
 ```
-To use the script to scan a DEX: 
+To use the script to scan a DEX and rank by 24H returns: 
 ```
-$python MomentumScanner.py DEXname
+$python MomentumScanner.py DEX
 ```
-Scan intraday returns for a DEX:
+Scan intraday returns for a DEX and rank by integer hours:
 ```
 $python MomentumScanner_intraday.py DEX Hours
 ```
 Hours is an integer between 1 and 23. 
 
-The script currently supports the following DEXname's:
+Calculate technical indicator (currently available: MACD_ratio) for a DEX:
 ```
-pancakeswap_new, apeswap_bsc, uniswap_v2, mdex_bsc, biswap, babyswap, babydogeswap
+$python MomentumScanner_techindicator.py DEX 
+```
+
+The script currently supports the all DEXes on CoinGecko. Check all ids in
+```
+https://api.coingecko.com/api/v3/exchanges
 ```
