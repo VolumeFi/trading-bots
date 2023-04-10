@@ -250,6 +250,22 @@ def findliquidity(coin, dex):
             print('DEX: ',ticker['market']['identifier'],
                   ', Pair: ',ticker['target_coin_id'],'<>',ticker['coin_id'],', Volume: ',ticker['volume'])
 
+def gethighreturns(dex, lag_return, daily_volume, monthly_mean_volume, liquidity):
+    vols = queryvolumes(dex)
+    lag_col = str(lag_return)+'H Return'
+    table = {}
+    if len(vols) != 0:
+        vols1=filterpairs(vols, volume=daily_volume)
+        if len(vols1) > 0:
+            df = findrets24h(vols1)
+            df = df[df['24H Return']>=0]
+            df = add_7drets(df)
+            df = add_intraday_rets(df,lag_return)
+            df[lag_col] = df[lag_col].apply(lambda x: round(x*100,2))
+            df = df[df[lag_col]>=0]
+            df = df.sort_values(by=lag_col,ascending=False)
+    return df
+
 def findbestreturn(dex, stoploss, profittaking, lag):
     lag_col = str(lag)+'H Return'
     vols = queryvolumes(dex)
