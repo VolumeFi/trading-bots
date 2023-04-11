@@ -254,6 +254,7 @@ def gethighreturns(dex, lag_return, daily_volume, monthly_mean_volume, liquidity
     vols = queryvolumes(dex)
     lag_col = str(lag_return)+'H Return'
     table = {}
+    df = pd.DataFrame()
     if len(vols) != 0:
         vols1=filterpairs(vols, volume=daily_volume)
         if len(vols1) > 0:
