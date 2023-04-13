@@ -20,9 +20,9 @@ $python MomentumScanner_intraday.py DEX Hours
 ```
 Hours is an integer between 1 and 23. 
 
-Calculate technical indicator (currently available: MACD_ratio) for a DEX:
+Calculate technical indicator (currently available INDICATOR_NAME: MACD_ratio, RSI) for a DEX:
 ```
-$python MomentumScanner_techindicator.py DEX 
+$python MomentumScanner_techindicator.py INDICATOR_NAME DEX 
 ```
 
 The script currently supports the all DEXes on CoinGecko. Check all ids in
