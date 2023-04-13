@@ -94,7 +94,7 @@ def tokenreturn_intraday(token, lag):
         print(e)
         return 0
 
-def token_technical_indicator(token):
+def token_technical_indicator_macd(token):
     re = querytokenprice100d(token)
     try:
         pr = re.json()
@@ -107,6 +107,34 @@ def token_technical_indicator(token):
         macd = (exp_short - exp_long) /  exp_long
 
         return macd.iloc[-1]
+    except Exception as e:
+        print(e)
+        return 0
+
+def token_technical_indicator_rsi(token):
+    re = querytokenprice100d(token)
+    try:
+        pr = re.json()
+        pr = pr['prices']
+
+        df = parse_price(pr)
+        df = df.sort_index()
+        prdiff = df['price'].diff().dropna()
+        prdiffpos = prdiff[prdiff>=0]
+        prdiffneg = prdiff[prdiff<0]
+
+        if len(prdiffpos) > 0:
+            gain_ema = prdiffpos.ewm(span = 12, adjust = False).mean().iloc[-1]
+        else:
+            gain_ema = 0
+        if len(prdiffneg) > 0:
+            loss_ema = prdiffneg.ewm(span = 12, adjust = False).mean().iloc[-1]
+        else:
+            loss_ema = 1
+        rs = gain_ema / loss_ema
+        rsi = 100 - (100 / (1 + rs))
+
+        return rsi
     except Exception as e:
         print(e)
         return 0
@@ -197,13 +225,16 @@ def add_intraday_rets(df,lag):
             df.loc[i,col_name] = None
     return df
 
-def add_technical_indicators(df):
-    col_name = 'MACD_ratio'
+def add_technical_indicators(df, col_name):
+    #col_name = 'MACD_ratio'
     df[col_name] = None
     for i in df.index:
         try:
-            macd = token_technical_indicator(i)
-            df.loc[i,col_name] = macd
+            if col_name == 'MACD_ratio':
+                indicator = token_technical_indicator_macd(i)
+            elif col_name == 'RSI':
+                indicator = token_technical_indicator_rsi(i)
+            df.loc[i,col_name] = indicator
             #time.sleep(0.01)
         except:
             df.loc[i,col_name] = None
@@ -250,7 +281,7 @@ def findliquidity(coin, dex):
             print('DEX: ',ticker['market']['identifier'],
                   ', Pair: ',ticker['target_coin_id'],'<>',ticker['coin_id'],', Volume: ',ticker['volume'])
 
-def findbestreturn(dex, stoploss, profittaking):
+def findbestreturn(dex, stoploss, profittaking, col_name):
 
     vols = queryvolumes(dex)
     if len(vols) != 0:
@@ -265,8 +296,8 @@ def findbestreturn(dex, stoploss, profittaking):
         return 
         
     df = findrets24h(vols1)
-    techindicator_col = 'MACD_ratio'
-    df = add_technical_indicators(df)
+    techindicator_col = col_name
+    df = add_technical_indicators(df, col_name)
     df = df[df[techindicator_col]>0]
     df = df.sort_values(by=techindicator_col,ascending=False)
 
@@ -294,8 +325,9 @@ if __name__ == '__main__':
 #    findbestreturn(dex='pancakeswap_new', stoploss=0.05, profittaking=0.05,lag=6)
 
     args = sys.argv
+    col_name = args[-1]
 
-    if len(args) == 1:
-        findbestreturn(dex='pancakeswap_new', stoploss=0.05, profittaking=0.05)
-    elif len(args) == 2:
-        findbestreturn(dex=str(sys.argv[1]), stoploss=0.05, profittaking=0.05)
+    if len(args) == 2:
+        findbestreturn(dex='pancakeswap_new', stoploss=0.05, profittaking=0.05,col_name=col_name)
+    elif len(args) == 3:
+        findbestreturn(dex=str(sys.argv[1]), stoploss=0.05, profittaking=0.05,col_name=col_name)
