@@ -1,0 +1,50 @@
+[
+    {
+        "id": "pancakeswap_new",
+        "chain": "BSC"
+    },
+    {
+        "id": "uniswap_v3",
+        "chain": "Ethereum"
+    },
+    {
+        "id": "uniswap_v3_arbitrum",
+        "chain": "Arbitrum"
+    },
+    {
+        "id": "uniswap_v3_polygon_pos",
+        "chain": "Polygon"
+    },
+    {
+        "id": "shibaswap",
+        "chain": "Ethereum"
+    },
+    {
+        "id": "sushiswap",
+        "chain": "Ethereum"
+    },
+    {
+        "id": "sushiswap_bsc",
+        "chain": "BSC"
+    },
+    {
+        "id": "apeswap_bsc",
+        "chain": "BSC"
+    },
+    {
+        "id": "babydogeswap",
+        "chain": "BSC"
+    },
+    {
+        "id": "biswap",
+        "chain": "BSC"
+    },
+    {
+        "id": "mdex_bsc",
+        "chain": "BSC"
+    },
+    {
+        "id": "babyswap",
+        "chain": "BSC"
+    }
+]
