@@ -33,6 +33,8 @@ async def fetch(session, url):
             js = await response.json()
         return js
     except Exception as e:
+        # Janky scrubbing.
+        url = url.replace(APIKEY, "x_cg_pro_api_key=XXX")
         print(f"Failed to fetch {url}: {e.__class__}")
 
 
