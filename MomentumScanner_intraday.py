@@ -1,12 +1,12 @@
 import requests
+import asyncio
+import aiohttp
 import pandas as pd
 import time, sys, os, datetime
 import argparse
 
-# apiroot = 'https://api.coingecko.com/api/v3'
-# apikey = ''
-apiroot = "https://pro-api.coingecko.com/api/v3"
-apikey = "x_cg_pro_api_key=" + os.environ["CG_KEY"]
+APIROOT = "https://pro-api.coingecko.com/api/v3"
+APIKEY = f"x_cg_pro_api_key={os.environ['CG_KEY']}"
 
 
 def conv_dt_rev(dt_int):
@@ -19,73 +19,61 @@ def conv_dt_rev(dt_int):
 
 
 def parse_price(pr):
-    df = pd.DataFrame()
-    for i in pr:
-        dt_ = conv_dt_rev(i[0])
-        pr_ = i[1]
-        df.loc[dt_, "price"] = pr_
+    index = [conv_dt_rev(p[0]) for p in pr]
+    data = [p[1] for p in pr]
+    return pd.DataFrame(data, index=index, columns=["price"])
 
-    return df
+
+async def fetch(session, url):
+    try:
+        async with session.get(url=url, timeout=10) as response:
+            js = await response.json()
+        return js
+    except Exception as e:
+        print(f"Failed to fetch {url}: {e.__class__}")
 
 
 def querydex(dex):
-    url = apiroot + "/exchanges/" + dex + "?" + apikey
     try:
-        re = requests.get(url, timeout=10)
-        return re
+        return requests.get(f"{APIROOT}/exchanges/{dex}?{APIKEY}", timeout=10)
     except:
         print("timed out")
-        return None
 
 
-def querytokenprice1d(token):
-    url = (
-        apiroot
-        + "/coins/"
-        + token
-        + "/market_chart?vs_currency=usd&days=1"
-        + "&"
-        + apikey
-    )
-    try:
-        re = requests.get(url, timeout=10)
-        return re
-    except:
-        print("timed out")
-        return None
+async def _query_token_prices(tokens, *, days):
+    async with aiohttp.ClientSession() as session:
+        prices = await asyncio.gather(
+            *[
+                fetch(
+                    session,
+                    f"{APIROOT}/coins/{token}/market_chart?vs_currency=usd&days={days}&{APIKEY}",
+                )
+                for token in tokens
+            ]
+        )
+    return prices
 
 
-def querytokenprice100d(token):
-    url = (
-        apiroot
-        + "/coins/"
-        + token
-        + "/market_chart?vs_currency=usd&days=100"
-        + "&"
-        + apikey
-    )
-    try:
-        re = requests.get(url, timeout=10)
-        return re
-    except:
-        print("timed out")
-        return None
+def query_token_prices(tokens, *, days):
+    return asyncio.run(_query_token_prices(tokens, days=days))
 
 
-def querycoin(coin):
-    url = "https://pro-api.coingecko.com/api/v3/coins/" + coin + "?" + apikey
-    try:
-        re = requests.get(url, timeout=10)
-        return re
-    except:
-        print("timed out")
-        return None
+async def _query_coins(coins):
+    async with aiohttp.ClientSession() as session:
+        coins = await asyncio.gather(
+            *[fetch(session, f"{APIROOT}/coins/{coin}?{APIKEY}") for coin in coins]
+        )
+    return coins
+
+
+def query_coins(coins):
+    return asyncio.run(_query_coins(coins))
 
 
 def tokenreturn24h(token):
-    query = querytokenprice1d(token)
+    js = query_token_prices([token], days=1)[0]
     try:
-        prices = query.json()["prices"]
+        prices = js["prices"]
     except:
         return 0
 
@@ -99,30 +87,29 @@ def tokenreturn24h(token):
         return ret24h
 
 
-def tokenreturn_intraday(token, lag):
-    re = querytokenprice1d(token)
-    try:
-        pr = re.json()
-        pr = pr["prices"]
+def tokenreturn_intraday(tokens, lag):
+    def parse_token_return(pr):
+        try:
+            pr = pr["prices"]
 
-        df = parse_price(pr)
-        df = df.sort_index()
-        current = df.index[-1]
-        prback = df["price"].asof(current - datetime.timedelta(hours=lag))
-        prcurrent = df["price"].iloc[-1]
-        ret = (prcurrent - prback) / prback
-        # print(prback, prcurrent)
+            df = parse_price(pr)
+            df = df.sort_index()
+            current = df.index[-1]
+            prback = df["price"].asof(current - datetime.timedelta(hours=lag))
+            prcurrent = df["price"].iloc[-1]
+            ret = (prcurrent - prback) / prback
 
-        return ret
-    except Exception as e:
-        print(e)
-        return 0
+            return ret
+        except Exception as e:
+            print(e)
+            return 0
+
+    return list(map(parse_token_return, query_token_prices(tokens, days=1)))
 
 
 def token_technical_indicator(token):
-    re = querytokenprice100d(token)
+    pr = query_token_prices([token], days=100)[0]
     try:
-        pr = re.json()
         pr = pr["prices"]
 
         df = parse_price(pr)
@@ -138,9 +125,9 @@ def token_technical_indicator(token):
 
 
 def tokenprice(token):
-    query = querytokenprice1d(token)
+    js = query_token_prices([token], days=1)[0]
     try:
-        prices = query.json()["prices"]
+        prices = js["prices"]
     except:
         return 0
 
@@ -177,27 +164,14 @@ def findtoken(pair):
 
 
 def querytokens_price1d(tokens):
-    token_ids = ""
-    for i, token in enumerate(tokens):
-        if i == len(tokens) - 1:
-            token_ids += token
-        else:
-            token_ids += token + "%2C"
-    url = (
-        apiroot
-        + "/simple/price?ids="
-        + token_ids
-        + "&vs_currencies=usd&include_24hr_change=true"
-        + "&"
-        + apikey
-    )
-    # print(url)
+    tokens = "%2C".join(tokens)
     try:
-        re = requests.get(url, timeout=10)
-        return re
+        return requests.get(
+            f"{APIROOT}/simple/price?ids={tokens}&vs_currencies=usd&include_24hr_change=true&{APIKEY}",
+            timeout=10,
+        )
     except:
         print("timed out")
-        return None
 
 
 def tokens_ret24h(tokens):
@@ -214,27 +188,15 @@ def tokens_ret24h(tokens):
 
 
 def add_7drets(df):
-    df["7D Return"] = None
-    for i in df.index:
-        try:
-            re = querycoin(i)
-            ret7d = re.json()["market_data"]["price_change_percentage_7d"]
-            df.loc[i, "7D Return"] = ret7d
-        except:
-            df.loc[i, "7D Return"] = None
+    df["7D Return"] = [
+        coin["market_data"]["price_change_percentage_7d"]
+        for coin in query_coins(df.index)
+    ]
     return df
 
 
 def add_intraday_rets(df, lag):
-    col_name = str(lag) + "H Return"
-    df[col_name] = None
-    for i in df.index:
-        try:
-            intra_ret = tokenreturn_intraday(i, lag)
-            df.loc[i, col_name] = intra_ret
-            # time.sleep(0.01)
-        except:
-            df.loc[i, col_name] = None
+    df[f"{lag}H Return"] = tokenreturn_intraday(df.index, lag)
     return df
 
 
@@ -253,7 +215,6 @@ def add_technical_indicators(df):
 
 def findrets24h(vols):
     tokens = []
-    rets24h = pd.DataFrame()
     for pair in vols.index:
         if "wbnb" in pair or "binance-usd" in pair or "weth" in pair:
             token = findtoken(pair)
@@ -307,8 +268,7 @@ def findliquidity(coin, dex):
 
 def gethighreturns(dex, lag_return, daily_volume, monthly_mean_volume, liquidity):
     vols = queryvolumes(dex)
-    lag_col = str(lag_return) + "H Return"
-    table = {}
+    lag_col = f"{lag_return}H Return"
     df = pd.DataFrame()
     if len(vols) != 0:
         vols1 = filterpairs(vols, volume=daily_volume)
