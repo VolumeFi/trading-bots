@@ -18,5 +18,5 @@ else:
 
 print(output)
 
-with open('data.json', 'w', encoding='utf-8') as f:
+with open("data.json", "w", encoding="utf-8") as f:
     json.dump(output, f, ensure_ascii=False, indent=4)
