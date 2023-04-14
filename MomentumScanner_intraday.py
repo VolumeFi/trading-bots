@@ -1,9 +1,12 @@
-import requests
 import asyncio
+import datetime
+import os
+import sys
+import time
+
 import aiohttp
 import pandas as pd
-import time, sys, os, datetime
-import argparse
+import requests
 
 APIROOT = "https://pro-api.coingecko.com/api/v3"
 APIKEY = f"x_cg_pro_api_key={os.environ['CG_KEY']}"
@@ -250,8 +253,8 @@ def gettrades(token, stoploss, profittaking):
 
 
 def findliquidity(coin, dex):
-    re = querycoin(coin)
-    for ticker in re.json()["tickers"]:
+    re = query_coins([coin])[0]
+    for ticker in re["tickers"]:
         if ticker["market"]["identifier"] == dex:
             # print('DEX: ',ticker['market']['identifier'],ticker['volume'])
             print(
