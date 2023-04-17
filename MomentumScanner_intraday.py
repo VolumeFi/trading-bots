@@ -46,7 +46,7 @@ def querydex(dex):
 
 
 async def _query_token_prices(tokens, *, days):
-    async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(limit=1000)) as session:
+    async with aiohttp.ClientSession() as session:
         prices = await asyncio.gather(
             *[
                 fetch(
@@ -64,7 +64,7 @@ def query_token_prices(tokens, *, days):
 
 
 async def _query_coins(coins):
-    async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(limit=1000)) as session:
+    async with aiohttp.ClientSession() as session:
         coins = await asyncio.gather(
             *[fetch(session, f"{APIROOT}/coins/{coin}?{APIKEY}") for coin in coins]
         )
