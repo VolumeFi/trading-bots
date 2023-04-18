@@ -1,12 +1,43 @@
-import requests
-import pandas as pd
-import time, sys, os, datetime
-import argparse
+import datetime
+import os
+import sqlite3
+import sys
+import time
 
-# apiroot = 'https://api.coingecko.com/api/v3'
-# apikey = ''
+import pandas as pd
+import requests
+
 apiroot = "https://pro-api.coingecko.com/api/v3"
-apikey = "x_cg_pro_api_key=" + os.environ["CG_KEY"]
+CG_KEY = os.environ["CG_KEY"]
+apikey = "x_cg_pro_api_key=" + CG_KEY
+
+DB = None
+
+
+def get_db():
+    global DB
+    if DB is None:
+        DB = sqlite3.connect("momentum_cache.db")
+        DB.execute("PRAGMA journal_mode = wal")
+        DB.execute(
+            """
+CREATE TABLE IF NOT EXISTS prices (
+    token TEXT,
+    timestamp INTEGER,
+    price REAL NOT NULL,
+    PRIMARY KEY(token, timestamp)
+)"""
+        )
+        DB.execute(
+            """
+CREATE TABLE IF NOT EXISTS prices_100 (
+    token TEXT,
+    timestamp INTEGER,
+    price REAL NOT NULL,
+    PRIMARY KEY(token, timestamp)
+)"""
+        )
+    return DB
 
 
 def conv_dt_rev(dt_int):
@@ -33,43 +64,50 @@ def querydex(dex):
     try:
         re = requests.get(url, timeout=10)
         return re
-    except:
+    except Exception:
         print("timed out")
         return None
 
 
-def querytokenprice1d(token):
-    url = (
-        apiroot
-        + "/coins/"
-        + token
-        + "/market_chart?vs_currency=usd&days=1"
-        + "&"
-        + apikey
-    )
-    try:
-        re = requests.get(url, timeout=10)
-        return re
-    except:
-        print("timed out")
-        return None
-
-
-def querytokenprice100d(token):
-    url = (
-        apiroot
-        + "/coins/"
-        + token
-        + "/market_chart?vs_currency=usd&days=100"
-        + "&"
-        + apikey
-    )
-    try:
-        re = requests.get(url, timeout=10)
-        return re
-    except:
-        print("timed out")
-        return None
+def query_token_price(token, *, days):
+    if days == 1:
+        table = "prices"
+        old = (time.time() - 60) * 1000
+    elif days == 100:
+        table = "prices_100"
+        old = (time.time() - 84600) * 1000
+    else:
+        raise Exception(f"Unsupported price resolution {days}")
+    db = get_db()
+    age = db.execute(
+        f"""
+SELECT MAX(timestamp)
+  FROM {table}
+ WHERE token = ?""",
+        (token,),
+    ).fetchone()[0]
+    if age is None or age < old:
+        url = f"{apiroot}/coins/{token}/market_chart"
+        prices = requests.get(
+            url,
+            params={"vs_currency": "usd", "days": days, "x_cg_pro_api_key": CG_KEY},
+            timeout=10,
+        ).json()["prices"]
+        db.execute(f"DELETE FROM {table} WHERE token = ?", (token,))
+        db.executemany(
+            f"""INSERT INTO {table} VALUES(?, ?, ?)""",
+            [(token, ts, price) for ts, price in prices],
+        )
+        db.commit()
+    prices = db.execute(
+        f"""
+SELECT timestamp, price
+  FROM {table}
+ WHERE token = ?
+""",
+        (token,),
+    ).fetchall()
+    return prices
 
 
 def querycoin(coin):
@@ -77,17 +115,13 @@ def querycoin(coin):
     try:
         re = requests.get(url, timeout=10)
         return re
-    except:
+    except Exception:
         print("timed out")
         return None
 
 
 def tokenreturn24h(token):
-    query = querytokenprice1d(token)
-    try:
-        prices = query.json()["prices"]
-    except:
-        return 0
+    prices = query_token_price(token, days=1)
 
     closeprice = prices[-1][1]
     openprice = prices[0][1]
@@ -100,18 +134,14 @@ def tokenreturn24h(token):
 
 
 def tokenreturn_intraday(token, lag):
-    re = querytokenprice1d(token)
+    pr = query_token_price(token, days=1)
     try:
-        pr = re.json()
-        pr = pr["prices"]
-
         df = parse_price(pr)
         df = df.sort_index()
         current = df.index[-1]
         prback = df["price"].asof(current - datetime.timedelta(hours=lag))
         prcurrent = df["price"].iloc[-1]
         ret = (prcurrent - prback) / prback
-        # print(prback, prcurrent)
 
         return ret
     except Exception as e:
@@ -120,11 +150,8 @@ def tokenreturn_intraday(token, lag):
 
 
 def token_technical_indicator(token):
-    re = querytokenprice100d(token)
+    pr = query_token_price(token, days=100)
     try:
-        pr = re.json()
-        pr = pr["prices"]
-
         df = parse_price(pr)
         df = df.sort_index()
         exp_short = df["price"].ewm(span=12, adjust=False).mean()
@@ -138,10 +165,11 @@ def token_technical_indicator(token):
 
 
 def tokenprice(token):
-    query = querytokenprice1d(token)
+    prices = query_token_price(token, days=1)
     try:
-        prices = query.json()["prices"]
-    except:
+        pass
+    except Exception:
+        print(e)
         return 0
 
     price = prices[-1][1]
@@ -152,7 +180,7 @@ def queryvolumes(dex):
     query = querydex(dex)
     try:
         dexdata = query.json()["tickers"]
-    except:
+    except Exception:
         return pd.DataFrame()
 
     vols = pd.Series(dtype=float)
@@ -195,7 +223,7 @@ def querytokens_price1d(tokens):
     try:
         re = requests.get(url, timeout=10)
         return re
-    except:
+    except Exception:
         print("timed out")
         return None
 
@@ -220,7 +248,7 @@ def add_7drets(df):
             re = querycoin(i)
             ret7d = re.json()["market_data"]["price_change_percentage_7d"]
             df.loc[i, "7D Return"] = ret7d
-        except:
+        except Exception:
             df.loc[i, "7D Return"] = None
     return df
 
@@ -232,8 +260,7 @@ def add_intraday_rets(df, lag):
         try:
             intra_ret = tokenreturn_intraday(i, lag)
             df.loc[i, col_name] = intra_ret
-            # time.sleep(0.01)
-        except:
+        except Exception:
             df.loc[i, col_name] = None
     return df
 
@@ -246,7 +273,7 @@ def add_technical_indicators(df):
             macd = token_technical_indicator(i)
             df.loc[i, col_name] = macd
             # time.sleep(0.01)
-        except:
+        except Exception:
             df.loc[i, col_name] = None
     return df
 
@@ -278,7 +305,7 @@ def getriskquery(token, stoploss=0.05, profittaking=0.05):
         ptprice = price * (1 + profittaking)
         print("enter at:", price, "stop-loss:", slprice, "profit-taking:", ptprice)
         # return slprice, ptprice
-    except:
+    except Exception:
         print("query failed, try again shortly")
 
 
@@ -349,7 +376,7 @@ def findbestreturn(dex, stoploss, profittaking, lag):
     try:
         df["7D Return"] = df["7D Return"].apply(lambda x: str(round(x, 2)) + "%")
         df[lag_col] = df[lag_col].apply(lambda x: str(round(x * 100, 2)) + "%")
-    except:
+    except Exception:
         pass
 
     hottoken = df.index[0]
