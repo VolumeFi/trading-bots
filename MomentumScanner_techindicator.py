@@ -165,6 +165,32 @@ def token_technical_indicator_rsi(token):
         print(e)
         return 0
 
+def get_sma(prices, length):
+    return prices.rolling(length).mean()
+
+def get_bollinger_bands_last(prices, length):
+    sma = get_sma(prices, length)
+    std = prices.rolling(length).std()
+    bollinger_up = sma + std * 2 # Calculate top band
+    bollinger_down = sma - std * 2 # Calculate bottom band
+    return bollinger_up.iloc[-1], bollinger_down.iloc[-1]
+
+def token_technical_indicator_bollingerband_updiff(token):
+    re = querytokenprice100d(token)
+    try:
+        pr = re.json()
+        pr = pr["prices"]
+
+        df = parse_price(pr)
+        df = df.sort_index()
+        bollinger_up, bollinger_down = get_bollinger_bands_last(df["price"], length=7)
+        bb_updiff = df["price"].iloc[-1] - bollinger_down
+        bb_updiff = bb_updiff / df["price"].iloc[-1] 
+
+        return bb_updiff
+    except Exception as e:
+        print(e)
+        return 0
 
 def tokenprice(token):
     query = querytokenprice1d(token)
@@ -276,6 +302,8 @@ def add_technical_indicators(df, col_name):
                 indicator = token_technical_indicator_macd(i)
             elif col_name == "RSI":
                 indicator = token_technical_indicator_rsi(i)
+            elif col_name == "BB_updiff":
+                indicator = token_technical_indicator_bollingerband_updiff(i)
             df.loc[i, col_name] = indicator
             # time.sleep(0.01)
         except:
