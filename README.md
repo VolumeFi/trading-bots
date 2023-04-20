@@ -16,7 +16,7 @@ poetry run python3 MomentumScanner_intraday.py DEX Hours
 ```
 Hours is an integer between 1 and 23.
 
-Calculate technical indicator (currently available INDICATOR_NAME: MACD_ratio, RSI) for a DEX:
+Calculate technical indicator (currently available INDICATOR_NAME: MACD_ratio (MACD ratio), RSI, BB_updiff (BollingerBand upthrend ratio)) for a DEX:
 ```bash
 poetry run python3 MomentumScanner_techindicator.py DEX INDICATOR_NAME
 ```
