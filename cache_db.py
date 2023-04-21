@@ -20,7 +20,12 @@ CREATE TABLE IF NOT EXISTS cache (
     return DB
 
 
-def fetch(id: str, f):
+def id_str(args):
+    return f"{args[0]}({','.join(map(str, args[1:]))})"
+
+
+def fetch(id, f):
+    id = id_str(id)
     db = get_db()
     row = db.execute(
         """\
@@ -31,15 +36,15 @@ SELECT value
 """,
         (id,),
     ).fetchone()
-    if row is None:
-        value = f()
-        db.execute(
-            """\
+    if row is not None:
+        return row[0]
+    value = f()
+    db.execute(
+        """\
 INSERT OR REPLACE INTO cache
 VALUES (?, datetime('now'), ?)
 """,
-            (id, value),
-        )
-        db.commit()
-        return value
-    return row[0]
+        (id, value),
+    )
+    db.commit()
+    return value
