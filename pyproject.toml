@@ -1,16 +1,21 @@
 [tool.poetry]
-name = "trading-bots"
+name = "trading_bots"
 version = "0.1.0"
 description = "Scan a DEX's hottest coin based on returns and volume."
 authors = ["Your Name <you@example.com>"]
 readme = "README.md"
-packages = [{include = "trading_bots"}]
+packages = [{ include = "trading_bots" }]
 
 [tool.poetry.dependencies]
 python = "^3.11"
 pandas = "^2.0.0"
 requests = "^2.28.2"
 
+
+[tool.poetry.group.dev.dependencies]
+mypy = "^1.2.0"
+pandas-stubs = "^2.0.0.230412"
+types-requests = "^2.28.11.17"
 
 [build-system]
 requires = ["poetry-core"]

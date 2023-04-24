@@ -1,22 +1,32 @@
-from MomentumScanner_intraday import gethighreturns
 from sys import argv
-import json
+
+import cache_db
+from momentum_scanner_intraday import get_high_returns
 
 
-dex = str(argv[1])
-lag_return = int(argv[2])
-daily_volume = int(argv[3])
-monthly_mean_volume = argv[4]
-liquidity = argv[5]
+def main():
+    dex = argv[1]
+    lag_return = int(argv[2])
+    daily_volume = int(argv[3])
+    monthly_mean_volume = argv[4]
+    liquidity = argv[5]
 
-df = gethighreturns(dex, lag_return, daily_volume, monthly_mean_volume, liquidity)
+    def recompute():
+        df = get_high_returns(
+            dex, lag_return, daily_volume, monthly_mean_volume, liquidity
+        )
+        df.dropna(how="all", axis=1, inplace=True)
+        return df.to_json()
 
-if len(df) > 0:
-    output = df.to_json()
-else:
-    output = {}
+    output = cache_db.fetch(
+        f"get_high_returns({dex}, {lag_return}, {daily_volume}, {monthly_mean_volume}, {liquidity})",
+        recompute,
+    )
 
-print(output)
+    print(output)
+    with open("data.json", "w", encoding="utf-8") as f:
+        f.write(output)
 
-with open("data.json", "w", encoding="utf-8") as f:
-    json.dump(output, f, ensure_ascii=False, indent=4)
+
+if __name__ == "__main__":
+    main()

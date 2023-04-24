@@ -1,5 +1,6 @@
 /__pycache__
 /data.json
-momentum_cache.db
-momentum_cache.db-shm
-momentum_cache.db-wal
+/momentum_cache.db
+/momentum_cache.db-shm
+/momentum_cache.db-wal
+/output.prof
