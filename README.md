@@ -2,23 +2,32 @@
 
 ## DISCLAIMER: THIS IS OPEN SOURCE SOFTWARE WITHOUT ANY WARRANTY. PLEASE USE AT YOUR OWN RISK. NO GUARANTEES ARE GIVEN AND NOT OUTPUT HERE IS ENDORSED AS TRADING ADVICE. THIS REPO IS FOR EXPERIMENTAL AND RESEARCH PURPOSES ONLY.
 
-## MomentumScanner
+## Momentum Scanner
 Python script used to scan a DEX's hottest coin based on returns and volume.
 
-To use the script to scan a DEX and rank by 24H returns:
+### Set up
+You need to have a CoinGecko API Key, set as an environment variable `CG_KEY`. 
+
+### Instruction
+1. Use the script to scan a DEX and rank by 24H returns:
 
 ```bash
 poetry run python3 MomentumScanner.py DEX
 ```
-Scan intraday returns for a DEX and rank by integer hours:
+2. Scan intraday returns for a DEX and rank by integer hours:
 ```bash
 poetry run python3 MomentumScanner_intraday.py DEX Hours
 ```
 Hours is an integer between 1 and 23.
 
-Calculate technical indicator (currently available INDICATOR_NAME: MACD_ratio (MACD ratio), RSI, BB_updiff (BollingerBand upthrend ratio)) for a DEX:
+3. Calculate technical indicator (currently available INDICATOR_NAME: MACD_ratio (MACD ratio), RSI, BB_updiff (BollingerBand upthrend ratio)) for a DEX:
 ```bash
 poetry run python3 MomentumScanner_techindicator.py DEX INDICATOR_NAME
+```
+
+4. Scan high momentum tokens on a DEX and store the data in a SQLite database:
+```bash
+python run_momentum_table.py DEX Hours Daily_Volume Monthly_Aeverage_Volune Liquidity
 ```
 
 The script currently supports the all DEXes on CoinGecko. Check all ids in
