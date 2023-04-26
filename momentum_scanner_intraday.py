@@ -250,6 +250,10 @@ def find_best_return(dex, stoploss, profittaking, lag):
     except Exception:
         pass
 
+    if len(df) == 0:
+        print('Currently no token satisfies the filtering conditions')
+        return
+
     hottoken = df.index[0]
     time.sleep(1)
     enterprice, sl, pt = get_trades(str(hottoken), stoploss, profittaking)

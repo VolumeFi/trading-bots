@@ -379,6 +379,10 @@ def findbestreturn(dex, stoploss, profittaking, col_name):
         print("Endpoint issues, query did not get any returned values")
         return
 
+    if len(df) == 0:
+        print('Currently no token satisfies the filtering conditions')
+        return
+
     df = findrets24h(vols1)
     techindicator_col = col_name
     df = add_technical_indicators(df, col_name)
