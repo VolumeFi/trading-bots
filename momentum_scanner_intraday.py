@@ -210,6 +210,8 @@ def get_high_returns(
         vols1 = filter_pairs(vols, volume=daily_volume)
         if len(vols1) > 0:
             df = find_rets_24h(vols1)
+            if len(df) == 0:
+                return df
             df = df[df["24H Return"] >= 0]
             df = add_7drets(df)
             df = add_intraday_rets(df, lag_return)
