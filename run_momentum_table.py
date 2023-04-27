@@ -4,11 +4,12 @@ import cache_db
 from momentum_scanner_intraday import get_high_returns
 
 import sentry_sdk
+
 sentry_sdk.init(
     dsn="https://955ac0a74d244e2c914767a351d4d069@o1200162.ingest.sentry.io/4505082653573120",
-
-    traces_sample_rate=1.0
+    traces_sample_rate=1.0,
 )
+
 
 def main():
     dex = argv[1]

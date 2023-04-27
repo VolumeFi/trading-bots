@@ -165,15 +165,18 @@ def token_technical_indicator_rsi(token):
         print(e)
         return 0
 
+
 def get_sma(prices, length):
     return prices.rolling(length).mean()
+
 
 def get_bollinger_bands_last(prices, length):
     sma = get_sma(prices, length)
     std = prices.rolling(length).std()
-    bollinger_up = sma + std * 2 # Calculate top band
-    bollinger_down = sma - std * 2 # Calculate bottom band
+    bollinger_up = sma + std * 2  # Calculate top band
+    bollinger_down = sma - std * 2  # Calculate bottom band
     return bollinger_up.iloc[-1], bollinger_down.iloc[-1]
+
 
 def token_technical_indicator_bollingerband_updiff(token):
     re = querytokenprice100d(token)
@@ -185,12 +188,13 @@ def token_technical_indicator_bollingerband_updiff(token):
         df = df.sort_index()
         bollinger_up, bollinger_down = get_bollinger_bands_last(df["price"], length=7)
         bb_updiff = df["price"].iloc[-1] - bollinger_down
-        bb_updiff = bb_updiff / df["price"].iloc[-1] 
+        bb_updiff = bb_updiff / df["price"].iloc[-1]
 
         return bb_updiff
     except Exception as e:
         print(e)
         return 0
+
 
 def tokenprice(token):
     query = querytokenprice1d(token)
@@ -380,7 +384,7 @@ def findbestreturn(dex, stoploss, profittaking, col_name):
         return
 
     if len(df) == 0:
-        print('Currently no token satisfies the filtering conditions')
+        print("Currently no token satisfies the filtering conditions")
         return
 
     df = findrets24h(vols1)
