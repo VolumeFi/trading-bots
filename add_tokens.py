@@ -1,15 +1,15 @@
 import pandas as pd
 
-def load_data():
+def load_user_request_data():
     try:
-        data = pd.read_csv('additiona_tokens.csv',index_col=[0])
-    except:
-        print('no data found')
-        data = pd.DataFrame()
-    return data
+        request_data = pd.read_csv('additiona_tokens.csv',index_col=[0])
+    except Exception as e:
+        print('no data file found:', e)
+        request_data = pd.DataFrame({'token':['pepe']},index=['uniswap_v2','uniswap_v3'])
+    return request_data
 
 def get_additional_tokens(dex):
-    data = load_data()
+    data = load_user_request_data()
     to_add = pd.Series(dtype=float)
     if dex in data.index:
         for i in data.loc[dex]:
