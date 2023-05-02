@@ -235,7 +235,7 @@ def find_best_return(dex, stoploss, profittaking, lag):
     else:
         print("Endpoint issues, query did not get any returned values")
         return
-    #vols1.loc['pepe<>weth'] = 1e7
+
     vols1 = add_tokens(dex, vols1)
     df = find_rets_24h(vols1)
     # df = df.sort_values(by='24H Return',ascending=False)
