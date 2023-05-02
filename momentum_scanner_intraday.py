@@ -5,6 +5,7 @@ import time
 
 import pandas as pd
 import requests
+from add_tokens import add_tokens
 
 APIROOT = "https://pro-api.coingecko.com/api/v3"
 CG_PARAM = "x_cg_pro_api_key"
@@ -235,6 +236,7 @@ def find_best_return(dex, stoploss, profittaking, lag):
         print("Endpoint issues, query did not get any returned values")
         return
 
+    vols1 = add_tokens(dex, vols1)
     df = find_rets_24h(vols1)
     # df = df.sort_values(by='24H Return',ascending=False)
     df = df[df["24H Return"] >= 0]
