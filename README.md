@@ -30,13 +30,15 @@ poetry run python3 MomentumScanner_techindicator.py DEX INDICATOR_NAME
 python run_momentum_table.py DEX Hours Daily_Volume Monthly_Aeverage_Volune Liquidity
 ```
 
-5. Calculate stop-loss and profit-taking price for a trade
+5. Calculate stop-loss and profit-taking price for a token.
 ```bash
-python -i
-from MomentumScanner import getrisk
-print(getrisk(price, stoploss, profittaking))
+$ python run_risk_query.py TOKEN StopLoss ProfitTaking
 ```
-`price` is the entrance price, `stoploss` is stop-loss percentage and `profittaking` is profit-taking percentage. 
+`TOKEN` = token name, `StopLoss` = stop-loss percentage, `ProfitTaking` = profit-taking percentage.
+If `StopLoss` and `ProfitTaking` not included, the default values 5% will be used for both. For example:
+```bash
+$ python run_risk_query.py bitcoin
+```
 
 The script currently supports the all DEXes on CoinGecko. Check all ids in
 https://api.coingecko.com/api/v3/exchanges
