@@ -201,9 +201,7 @@ def find_liquidity(coin, dex):
             )
 
 
-def get_high_returns(
-    dex: str, lag_return: int, daily_volume: int, _monthly_mean_volume, _liquidity
-):
+def get_high_returns(dex: str, lag_return: int, daily_volume: int):
     vols = query_volumes(dex)
     lag_col = f"{lag_return}H Return"
     df = pd.DataFrame()

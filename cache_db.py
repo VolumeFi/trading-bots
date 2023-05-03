@@ -1,4 +1,4 @@
-import sqlite3
+import psycopg2
 
 DB = None
 
@@ -6,40 +6,55 @@ DB = None
 def get_db():
     global DB
     if DB is None:
-        DB = sqlite3.connect("momentum_cache.db")
-        DB.execute("PRAGMA journal_mode = wal")
-        DB.execute(
-            """
-CREATE TABLE IF NOT EXISTS cache (
-    id TEXT,
-    timestamp TEXT NOT NULL,
-    value TEXT NOT NULL,
-    PRIMARY KEY(id)
+        DB = psycopg2.connect(dbname="momentum_cache")
+        with DB.cursor() as db:
+            db.execute(
+                """
+CREATE TABLE IF NOT EXISTS daily_high_returns (
+    dex TEXT,
+    lag_return INTEGER,
+    daily_volume INTEGER,
+    ts TIMESTAMP WITHOUT TIME ZONE NOT NULL,
+    value JSONB NOT NULL,
+    PRIMARY KEY (dex, lag_return, daily_volume)
 )"""
-        )
-    return DB
+            )
+    return DB.cursor()
 
 
-def fetch(id: str, f):
-    db = get_db()
-    row = db.execute(
-        """\
+def fetch(dex, lag_return, daily_volume, f):
+    with get_db() as db:
+        value = db.execute(
+            """\
 SELECT value
-  FROM cache
- WHERE id = ?
-   AND datetime('now', '-1 minute')  <= timestamp
+  FROM daily_high_returns
+ WHERE dex = %s
+   AND lag_return = %s
+   AND daily_volume = %s
+   AND now() - interval '3 hours' <= ts
 """,
-        (id,),
-    ).fetchone()
-    if row is None:
+            (dex, lag_return, daily_volume),
+        )
+        if value is not None:
+            return value
         value = f()
+        print(value)
         db.execute(
             """\
-INSERT OR REPLACE INTO cache
-VALUES (?, datetime('now'), ?)
+INSERT INTO daily_high_returns(dex, lag_return, daily_volume, ts, value)
+VALUES (%s, %s, %s, now(), %s)
+ON CONFLICT (dex, lag_return, daily_volume) DO UPDATE 
+SET ts = EXCLUDED.ts,
+  value = EXCLUDED.value
 """,
-            (id, value),
+            (dex, lag_return, daily_volume, value),
         )
-        db.commit()
+        row = db.execute(
+            """\
+SELECT *
+FROM daily_high_returns
+""",
+            (dex, lag_return, daily_volume),
+        )
+        print(row)
         return value
-    return row[0]

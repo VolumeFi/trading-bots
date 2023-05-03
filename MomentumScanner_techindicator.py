@@ -1,7 +1,11 @@
-import requests
-import pandas as pd
-import time, sys, os, datetime
 import argparse
+import datetime
+import os
+import sys
+import time
+
+import pandas as pd
+import requests
 
 # apiroot = 'https://api.coingecko.com/api/v3'
 # apikey = ''
