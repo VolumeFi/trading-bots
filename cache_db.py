@@ -1,14 +1,17 @@
 import psycopg2
+from psycopg2.extras import Json
 
-DB = None
+INITIALIZED = False
 
 
 def get_db():
-    global DB
-    if DB is None:
-        DB = psycopg2.connect(dbname="momentum_cache")
-        with DB.cursor() as db:
-            db.execute(
+    global INITIALIZED
+    conn = psycopg2.connect(user="postgres", dbname="momentum_cache")
+    conn.autocommit = True
+    if not INITIALIZED:
+        INITIALIZED = True
+        with conn.cursor() as cur:
+            cur.execute(
                 """
 CREATE TABLE IF NOT EXISTS daily_high_returns (
     dex TEXT,
@@ -19,13 +22,15 @@ CREATE TABLE IF NOT EXISTS daily_high_returns (
     PRIMARY KEY (dex, lag_return, daily_volume)
 )"""
             )
-    return DB.cursor()
+        INITIALIZED = True
+    return conn
 
 
 def fetch(dex, lag_return, daily_volume, f):
-    with get_db() as db:
-        value = db.execute(
-            """\
+    with get_db() as conn:
+        with conn.cursor() as db:
+            db.execute(
+                """\
 SELECT value
   FROM daily_high_returns
  WHERE dex = %s
@@ -33,28 +38,20 @@ SELECT value
    AND daily_volume = %s
    AND now() - interval '3 hours' <= ts
 """,
-            (dex, lag_return, daily_volume),
-        )
-        if value is not None:
-            return value
-        value = f()
-        print(value)
-        db.execute(
-            """\
+                (dex, lag_return, daily_volume),
+            )
+            value = db.fetchone()
+            if value is not None:
+                return value[0]
+            value = f()
+            db.execute(
+                """\
 INSERT INTO daily_high_returns(dex, lag_return, daily_volume, ts, value)
 VALUES (%s, %s, %s, now(), %s)
 ON CONFLICT (dex, lag_return, daily_volume) DO UPDATE 
 SET ts = EXCLUDED.ts,
-  value = EXCLUDED.value
+ value = EXCLUDED.value
 """,
-            (dex, lag_return, daily_volume, value),
-        )
-        row = db.execute(
-            """\
-SELECT *
-FROM daily_high_returns
-""",
-            (dex, lag_return, daily_volume),
-        )
-        print(row)
-        return value
+                (dex, lag_return, daily_volume, Json(value)),
+            )
+            conn.commit()
