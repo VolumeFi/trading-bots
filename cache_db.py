@@ -21,6 +21,7 @@ CREATE TABLE IF NOT EXISTS gecko (
     path TEXT,
     params JSONB,
     ts TIMESTAMP WITHOUT TIME ZONE NOT NULL,
+    max_age INTERVAL NOT NULL,
     value JSONB NOT NULL,
     PRIMARY KEY (path, params)
 )"""
@@ -48,7 +49,7 @@ SELECT value
 FROM gecko
 WHERE path = %s
 AND params = %s
-AND now() - interval '10 minutes' <= ts
+AND now() - max_age <= ts
 """,
             (path, Json(params)),
         )
@@ -58,11 +59,13 @@ AND now() - interval '10 minutes' <= ts
         value = f()
         db.execute(
             """\
-INSERT INTO gecko(path, params, ts, value)
-VALUES (%s, %s, now(), %s)
+INSERT INTO gecko(path, params, ts, max_age, value)
+VALUES (%s, %s, now(), interval '10 minutes', %s)
 ON CONFLICT (path, params) DO UPDATE 
-SET ts = EXCLUDED.ts,
-value = EXCLUDED.value
+SET
+     ts = EXCLUDED.ts,
+max_age = EXCLUDED.max_age,
+  value = EXCLUDED.value
 """,
             (path, Json(params), Json(value)),
         )
