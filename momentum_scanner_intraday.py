@@ -1,69 +1,22 @@
 import datetime
-import os
-import sys
 import time
 
 import pandas as pd
-import requests
+
+import gecko
 from add_tokens import add_tokens
-
-APIROOT = "https://pro-api.coingecko.com/api/v3"
-CG_PARAM = "x_cg_pro_api_key"
-CG_KEY = os.environ["CG_KEY"]
-
-
-def conv_dt_rev(dt_int):
-    """
-    convert datetime format
-    """
-    return datetime.datetime(1970, 1, 1, 0, 0, 0) + datetime.timedelta(
-        seconds=int(dt_int) / 1e3
-    )
-
-
-def parse_price(pr):
-    df = pd.DataFrame()
-    for i in pr:
-        dt_ = conv_dt_rev(i[0])
-        pr_ = i[1]
-        df.loc[dt_, "price"] = pr_
-    return df
-
-
-def query_dex(dex):
-    return requests.get(
-        f"{APIROOT}/exchanges/{dex}", params={CG_PARAM: CG_KEY}, timeout=10
-    ).json()["tickers"]
-
-
-def query_token_price(token, *, days):
-    return requests.get(
-        f"{APIROOT}/coins/{token}/market_chart",
-        params={"vs_currency": "usd", "days": days, CG_PARAM: CG_KEY},
-        timeout=10,
-    ).json()["prices"]
-
-
-def query_coin(coin):
-    return requests.get(
-        f"{APIROOT}/coins/{coin}", params={CG_PARAM: CG_KEY}, timeout=10
-    ).json()
 
 
 def token_return_24h(token):
-    prices = query_token_price(token, days=1)
-
-    open, close = prices[0][1], prices[-1][1]
-
+    prices = gecko.market_chart(token, days=1)
+    open, close = prices["price"][0], prices["price"][-1]
     if open == 0:
         return 0
     return (close - open) / open
 
 
 def token_return_intraday(token, lag):
-    pr = query_token_price(token, days=1)
-    df = parse_price(pr)
-    df = df.sort_index()
+    df = gecko.market_chart(token, days=1)
     current = df.index[-1]
     prback = df["price"].asof(current - datetime.timedelta(hours=lag))
     prcurrent = df["price"].iloc[-1]
@@ -71,9 +24,7 @@ def token_return_intraday(token, lag):
 
 
 def token_technical_indicator(token):
-    pr = query_token_price(token, days=100)
-    df = parse_price(pr)
-    df = df.sort_index()
+    df = gecko.market_chart(token, days=100)
     exp_short = df["price"].ewm(span=12, adjust=False).mean()
     exp_long = df["price"].ewm(span=26, adjust=False).mean()
     macd = (exp_short - exp_long) / exp_long
@@ -81,12 +32,11 @@ def token_technical_indicator(token):
 
 
 def token_price(token):
-    prices = query_token_price(token, days=1)
-    return prices[-1][1]
+    return gecko.market_chart(token, days=1)["price"][-1]
 
 
 def query_volumes(dex):
-    dex_data = query_dex(dex)
+    dex_data = gecko.exchanges(dex)
 
     vols = pd.Series(dtype=float)
     for i in dex_data:
@@ -109,20 +59,8 @@ def find_token(pair):
         return a[0]
 
 
-def query_tokens_price1d(tokens):
-    return requests.get(
-        f"{APIROOT}/simple/price",
-        params={
-            "ids": ",".join(tokens),
-            "vs_currencies": "usd",
-            "include_24hr_change": "true",
-            CG_PARAM: CG_KEY,
-        },
-    ).json()
-
-
 def tokens_ret24h(tokens):
-    query = query_tokens_price1d(tokens)
+    query = gecko.simple_price_1d(tokens)
     ret24 = pd.DataFrame()
     for k in query:
         ret24.loc[k, "24H Return"] = query[k]["usd_24h_change"]
@@ -132,7 +70,7 @@ def tokens_ret24h(tokens):
 def add_7drets(df):
     df["7D Return"] = None
     for i in df.index:
-        ret7d = query_coin(i)["market_data"]["price_change_percentage_7d"]
+        ret7d = gecko.query_coin(i)["market_data"]["price_change_percentage_7d"]
         df.loc[i, "7D Return"] = ret7d
     return df
 
@@ -172,7 +110,7 @@ def get_risk(price, stoploss, profittaking):
 
 
 def get_risk_query(token, stoploss=0.05, profittaking=0.05):
-    price = query_tokens_price1d([token])[token]["usd"]
+    price = gecko.simple_price_1d([token])[token]["usd"]
     slprice = price * (1 - stoploss)
     ptprice = price * (1 + profittaking)
     print("enter at:", price, "stop-loss:", slprice, "profit-taking:", ptprice)
@@ -186,7 +124,7 @@ def get_trades(token, stoploss, profittaking):
 
 
 def find_liquidity(coin, dex):
-    for ticker in query_coin(coin)["tickers"]:
+    for ticker in gecko.query_coin(coin)["tickers"]:
         if ticker["market"]["identifier"] == dex:
             # print('DEX: ',ticker['market']['identifier'],ticker['volume'])
             print(
@@ -285,19 +223,3 @@ def find_best_return(dex, stoploss, profittaking, lag):
     print("liquidity profile: ", flush=True)
     find_liquidity(hottoken, dex)
     print("----------------------------------------------", flush=True)
-
-
-if __name__ == "__main__":
-    #    findbestreturn(dex='pancakeswap_new', stoploss=0.05, profittaking=0.05,lag=6)
-
-    args = sys.argv
-    lag = int(args[-1])
-
-    if len(args) == 2:
-        find_best_return(
-            dex="pancakeswap_new", stoploss=0.05, profittaking=0.05, lag=lag
-        )
-    elif len(args) == 3:
-        find_best_return(
-            dex=str(sys.argv[1]), stoploss=0.05, profittaking=0.05, lag=lag
-        )
