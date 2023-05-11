@@ -35,6 +35,16 @@ def token_price(token):
     return gecko.market_chart(token, days=1)["price"][-1]
 
 
+def token_volume_marketcap(token):
+    """
+    Days = 100 to make sure we are getting daily values
+    """
+    df = gecko.market_chart(token, days=100)
+    vol_30 = df["total_volumes"].iloc[-30:].mean()
+    mc_30 = df["market_caps"].iloc[-30:].mean()
+    return vol_30, mc_30
+
+
 def query_volumes(dex):
     dex_data = gecko.exchanges(dex)
 
@@ -103,6 +113,14 @@ def find_rets_24h(vols):
     return rets24h
 
 
+def add_volume_marketcap(df):
+    for token in df.index:
+        vol_30, mc_30 = token_volume_marketcap(token)
+        df.loc[token, "30_day_mean_volume"] = vol_30
+        df.loc[token, "30_day_mean_marketcap"] = mc_30
+    return df
+
+
 def get_risk(price, stoploss, profittaking):
     slprice = price * (1 - stoploss)
     ptprice = price * (1 + profittaking)
@@ -139,7 +157,9 @@ def find_liquidity(coin, dex):
             )
 
 
-def get_high_returns(dex: str, lag_return: int, daily_volume: int):
+def get_high_returns(
+    dex: str, lag_return: int, daily_volume: int, vol_30=100, market_cap=100
+):
     vols = query_volumes(dex)
     lag_col = f"{lag_return}H Return"
     df = pd.DataFrame()
@@ -147,6 +167,11 @@ def get_high_returns(dex: str, lag_return: int, daily_volume: int):
         vols1 = filter_pairs(vols, volume=daily_volume)
         if len(vols1) > 0:
             df = find_rets_24h(vols1)
+            df = add_volume_marketcap(df)
+            df = df[
+                (df["30_day_mean_volume"] >= vol_30)
+                & (df["30_day_mean_marketcap"] >= market_cap)
+            ]
             if len(df) == 0:
                 return df
             df = df[df["24H Return"] >= 0]

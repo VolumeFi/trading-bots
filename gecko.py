@@ -34,11 +34,18 @@ def millis_to_datetime(dt_int):
 def market_chart(coin, *, days):
     import pandas as pd
 
+    assert days in (1, 100)
     chart = get(
         "coins", coin, "market_chart", params={"vs_currency": "usd", "days": days}
     )
     prices = [(millis_to_datetime(dt), pr) for dt, pr in chart["prices"]]
-    return pd.DataFrame(prices, columns=["ts", "price"]).set_index("ts")
+    market_caps = [(millis_to_datetime(dt), mc) for dt, mc in chart["market_caps"]]
+    total_volumes = [(millis_to_datetime(dt), tv) for dt, tv in chart["total_volumes"]]
+    pr = pd.DataFrame(prices, columns=["ts", "price"]).set_index("ts")
+    mc = pd.DataFrame(market_caps, columns=["ts", "market_caps"]).set_index("ts")
+    tv = pd.DataFrame(total_volumes, columns=["ts", "total_volumes"]).set_index("ts")
+    df = pd.concat([pr, mc, tv], axis=1)
+    return df
 
 
 def query_coin(coin):
