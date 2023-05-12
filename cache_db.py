@@ -16,7 +16,7 @@ def get_pool():
         conn = DB_POOL.getconn()
         with conn.cursor() as cur:
             cur.execute(
-                """
+                """\
 CREATE TABLE IF NOT EXISTS gecko (
     path TEXT,
     params JSONB,
@@ -24,6 +24,15 @@ CREATE TABLE IF NOT EXISTS gecko (
     max_age INTERVAL NOT NULL,
     value JSONB NOT NULL,
     PRIMARY KEY (path, params)
+)"""
+            )
+            cur.execute(
+                """\
+CREATE TABLE IF NOT EXISTS required_pairs (
+    dex TEXT,
+    from_coin TEXT NOT NULL,
+    to_coin TEXT NOT NULL,
+    PRIMARY KEY (dex, from_coin, to_coin)
 )"""
             )
             conn.commit()
@@ -70,3 +79,14 @@ max_age = EXCLUDED.max_age,
             (path, Json(params), Json(value)),
         )
         return value
+
+
+def get_pairs(dex):
+    with get_db() as db:
+        db.execute(
+            """\
+SELECT from_coin, to_coin FROM required_pairs
+ WHERE dex = %s
+"""
+        )
+        return list(db.fetchall())

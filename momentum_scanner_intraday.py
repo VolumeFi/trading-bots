@@ -3,8 +3,8 @@ import time
 
 import pandas as pd
 
+import cache_db
 import gecko
-from add_tokens import add_tokens
 
 
 def token_return_24h(token):
@@ -47,26 +47,22 @@ def token_volume_marketcap(token):
 
 def query_volumes(dex):
     dex_data = gecko.exchanges(dex)
+    df = pd.DataFrame(
+        [
+            {
+                "pair": ticker["coin_id"] + "<>" + ticker["target_coin_id"],
+                "volume": ticker["converted_volume"]["usd"],
+            }
+            for ticker in dex_data
+        ]
+    )
+    df.set_index("pair", inplace=True)
+    df.index.name = "pair"
+    return df
 
-    vols = pd.Series(dtype=float)
-    for i in dex_data:
-        id_ = i["coin_id"] + "<>" + i["target_coin_id"]
-        vols.loc[id_] = i["converted_volume"]["usd"]
 
-    return vols.sort_values(ascending=False)
-
-
-def filter_pairs(vols, volume=1e5):
-    vols = vols[vols >= volume]
-    return vols
-
-
-def find_token(pair):
-    a = pair.split("<>")
-    if a[0] in ["wbnb", "binance-usd", "weth"]:
-        return a[1]
-    else:
-        return a[0]
+def filter_pairs(vols, *, volume=1e5):
+    return vols[vols["volume"] >= volume]
 
 
 def tokens_ret24h(tokens):
@@ -104,10 +100,12 @@ def add_technical_indicators(df):
 
 
 def find_rets_24h(vols):
-    tokens = set()
-    for pair in vols.index:
-        if "wbnb" in pair or "binance-usd" in pair or "weth" in pair:
-            tokens.add(find_token(pair))
+    main_tokens = {"binance-usd", "wbnb", "weth"}
+    tokens = set(main_tokens)
+    for pair in vols:
+        toks = set(pair.split("<>")) - main_tokens
+        if len(toks) == 1:
+            tokens.update(toks)
     rets24h = tokens_ret24h(tokens)
     rets24h.index.name = "Token name"
     return rets24h
@@ -158,47 +156,50 @@ def find_liquidity(coin, dex):
 
 
 def get_high_returns(
-    dex: str, lag_return: int, daily_volume: int, vol_30=100, market_cap=100
+        dex: str, lag_return: int, daily_volume: int, vol_30=100, market_cap=100
 ):
     vols = query_volumes(dex)
     lag_col = f"{lag_return}H Return"
-    df = pd.DataFrame()
-    if len(vols) != 0:
-        vols1 = filter_pairs(vols, volume=daily_volume)
-        if len(vols1) > 0:
-            df = find_rets_24h(vols1)
-            df = add_volume_marketcap(df)
-            df = df[
-                (df["30_day_mean_volume"] >= vol_30)
-                & (df["30_day_mean_marketcap"] >= market_cap)
-            ]
-            if len(df) == 0:
-                return df
-            df = df[df["24H Return"] >= 0]
-            df = add_7drets(df)
-            df = add_intraday_rets(df, lag_return)
-            df[lag_col] = df[lag_col].apply(lambda x: round(x * 100, 2))
-            df = df[df[lag_col] >= 0]
-            df = df.sort_values(by=lag_col, ascending=False)
+    vols = filter_pairs(vols, volume=daily_volume)
+    df = find_rets_24h(vols)
+    df = add_volume_marketcap(df)
+    df = df[
+        (df["30_day_mean_volume"] >= vol_30)
+        & (df["30_day_mean_marketcap"] >= market_cap)
+        ]
+    if df.empty:
+        return df
+    df = df[df["24H Return"] >= 0]
+    df = add_7drets(df)
+    df = add_intraday_rets(df, lag_return)
+    df[lag_col] = df[lag_col].apply(lambda x: round(x * 100, 2))
+    df = df[df[lag_col] >= 0]
+    df = df.sort_values(by=lag_col, ascending=False)
+
     return df
+
+
+def required_pairs(dex):
+    return pd.DataFrame(
+        [(f"{a}<>{b}", 1e7) for a, b in cache_db.get_pairs(dex)],
+        columns=("pair", "volume"),
+    ).set_index("pair")
 
 
 def find_best_return(dex, stoploss, profittaking, lag):
     lag_col = f"{lag}H Return"
     vols = query_volumes(dex)
-    if len(vols) != 0:
-        vols1 = filter_pairs(vols, volume=150000)
-        if len(vols1) == 0:
-            print("No pair found with enough volume")
-            return
-        else:
-            vols1 = vols1  # .iloc[1:]
-    else:
-        print("Endpoint issues, query did not get any returned values")
-        return
+    if vols.empty:
+        raise Exception("Query did not get any returned values")
 
-    vols1 = add_tokens(dex, vols1)
-    df = find_rets_24h(vols1)
+    vols = filter_pairs(vols, volume=150000)
+    if vols.empty:
+        raise Exception("No pair found with enough volume")
+
+    extras = required_pairs(dex)
+    extras = extras[~extras.index.isin(vols.index)]
+    vols = pd.concat([vols, extras])
+    df = find_rets_24h(vols)
     # df = df.sort_values(by='24H Return',ascending=False)
     df = df[df["24H Return"] >= 0]
     df = add_7drets(df)
