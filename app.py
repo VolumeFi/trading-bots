@@ -1,13 +1,13 @@
 import bottle
+import sentry_sdk
 from bottle import request
 
 import momentum_scanner_intraday
 
-
-##sentry_sdk.init(
-##    dsn="https://955ac0a74d244e2c914767a351d4d069@o1200162.ingest.sentry.io/4505082653573120",
-##    traces_sample_rate=1.0,
-##)
+sentry_sdk.init(
+    dsn="https://955ac0a74d244e2c914767a351d4d069@o1200162.ingest.sentry.io/4505082653573120",
+    traces_sample_rate=1.0,
+)
 
 
 @bottle.post("/get_high_returns")

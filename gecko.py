@@ -1,5 +1,7 @@
 import os
+from datetime import datetime, timedelta
 
+import pandas as pd
 import requests
 
 import cache_db
@@ -19,21 +21,27 @@ def get(*args, params: dict = {}):
 
 
 def exchanges(dex):
-    return get("exchanges", dex)["tickers"]
+    data = [
+        {
+            "pair": ticker["coin_id"] + "<>" + ticker["target_coin_id"],
+            "volume": ticker["converted_volume"]["usd"],
+        }
+        for ticker in get("exchanges", dex)["tickers"]
+    ]
+    df = pd.DataFrame(data)
+    df.set_index("pair", inplace=True)
+    df.index.name = "pair"
+    return df
 
 
 def millis_to_datetime(dt_int):
     """
     Convert millis-since-epoch to a datetime.
     """
-    from datetime import datetime, timedelta
-
     return datetime(1970, 1, 1, 0, 0, 0) + timedelta(seconds=int(dt_int) / 1e3)
 
 
 def market_chart(coin, *, days):
-    import pandas as pd
-
     assert days in (1, 100)
     chart = get(
         "coins", coin, "market_chart", params={"vs_currency": "usd", "days": days}
@@ -46,6 +54,18 @@ def market_chart(coin, *, days):
     tv = pd.DataFrame(total_volumes, columns=["ts", "total_volumes"]).set_index("ts")
     df = pd.concat([pr, mc, tv], axis=1)
     return df
+
+
+def coin_return_intraday(coin, lag):
+    df = market_chart(coin, days=1)
+    current = df.index[-1]
+    prback = df["price"].asof(current - timedelta(hours=lag))
+    prcurrent = df["price"].iloc[-1]
+    return (prcurrent - prback) / prback
+
+
+def price(coin):
+    return market_chart(coin, days=1)["price"][-1]
 
 
 def query_coin(coin):
