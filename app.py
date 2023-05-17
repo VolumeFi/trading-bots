@@ -14,11 +14,14 @@ sentry_sdk.init(
 def get_high_returns():
     dex, lag_return, daily_volume = (
         request.json["dex"],
-        request.json["lag_return"],
-        request.json["daily_volume"],
+        int(request.json["lag_return"]),
+        int(request.json["daily_volume"]),
     )
     if "market_cap" in request.json.keys() or "vol_30" in request.json.keys():
-        market_cap, vol_30 = (request.json["market_cap"], request.json["vol_30"])
+        market_cap, vol_30 = (
+            int(request.json["market_cap"]),
+            int(request.json["vol_30"]),
+        )
         df = momentum_scanner_intraday.get_high_returns(
             dex, lag_return, daily_volume, vol_30, market_cap
         )

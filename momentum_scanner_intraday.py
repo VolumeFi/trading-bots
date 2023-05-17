@@ -68,7 +68,7 @@ def find_liquidity(coin, dex):
 
 
 def get_high_returns(
-        dex: str, lag_return: int, daily_volume: int, vol_30=100, market_cap=100
+    dex: str, lag_return: int, daily_volume: int, vol_30=100, market_cap=100
 ):
     vols = gecko.exchanges(dex)
     lag_col = f"{lag_return}H Return"
