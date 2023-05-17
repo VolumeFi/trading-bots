@@ -4,7 +4,7 @@ import gecko
 
 
 def filter_pairs(vols, volume=1e5):
-    return vols[vols >= volume]
+    return vols[vols["volume"] >= volume]
 
 
 def get_risk(price, stoploss, profittaking):
