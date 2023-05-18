@@ -75,10 +75,10 @@ def get_high_returns(
     vols = metrics.filter_pairs(vols, volume=daily_volume)
     df = metrics.find_rets_24h(vols)
     df = add_volume_marketcap(df)
-    # df = df[
-    #    (df["30_day_mean_volume"] >= vol_30)
-    #    & (df["30_day_mean_marketcap"] >= market_cap)
-    # ]
+    df = df[
+       (df["30_day_mean_volume"] >= vol_30)
+       & (df["30_day_mean_marketcap"] >= market_cap)
+    ]
     if df.empty:
         return df
     df = df[df["24H Return"] >= 0]
