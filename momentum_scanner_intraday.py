@@ -81,7 +81,7 @@ def get_high_returns(
     # ]
     if df.empty:
         return df
-    #df = df[df["24H Return"] >= 0]
+    #df = df[df["24H Return"] >= 0] # dropping this line in case all tokens have negative returns 
     df = metrics.add_7drets(df)
     df = add_intraday_rets(df, lag_return)
     df[lag_col] = df[lag_col].apply(lambda x: round(x * 100, 2))
