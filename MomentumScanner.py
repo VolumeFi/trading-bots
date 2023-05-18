@@ -37,7 +37,7 @@ def findbestreturn(dex, stoploss, profittaking, neg7D):
 
     rets24h = metrics.find_rets_24h(vols1)
     rets24h = rets24h.sort_values(by="24H Return", ascending=False)
-    rets24h = rets24h[rets24h["24H Return"] >= 0]
+    #rets24h = rets24h[rets24h["24H Return"] >= 0]
     rets24h = metrics.add_7drets(rets24h)
     #    rets24h['24H Return'] = rets24h['24H Return'].apply(lambda x: str(round(x*100,2))+'%')
     rets24h["24H Return"] = rets24h["24H Return"].apply(
