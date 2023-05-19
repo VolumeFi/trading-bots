@@ -18,6 +18,7 @@ def get(*args, params: dict = {}):
         timeout=10,
     ).json()
     return cache_db.try_cache(path, params, f)
+    #return f() # for testing without DB caching, uncomment this line and comment out the line above 
 
 
 def exchanges(dex):

@@ -85,7 +85,7 @@ def get_high_returns(
     df = metrics.add_7drets(df)
     df = add_intraday_rets(df, lag_return)
     df[lag_col] = df[lag_col].apply(lambda x: round(x * 100, 2))
-    df = df[df[lag_col] >= 0]
+    #df = df[df[lag_col] >= 0]
     df = df.sort_values(by=lag_col, ascending=False)
 
     return df
