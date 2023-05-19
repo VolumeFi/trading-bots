@@ -46,7 +46,7 @@ def token_technical_indicator_macd(token):
 def find_rets_24h(vols):
     main_tokens = {"binance-usd", "wbnb", "weth"}
     tokens = set(main_tokens)
-    for pair in vols:
+    for pair in vols.index:
         toks = set(pair.split("<>")) - main_tokens
         if len(toks) == 1:
             tokens.update(toks)
