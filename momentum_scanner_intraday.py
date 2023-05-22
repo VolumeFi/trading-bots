@@ -76,16 +76,16 @@ def get_high_returns(
     df = metrics.find_rets_24h(vols)
     df = add_volume_marketcap(df)
     df = df[
-       (df["30_day_mean_volume"] >= vol_30)
-       & (df["30_day_mean_marketcap"] >= market_cap)
+        (df["30_day_mean_volume"] >= vol_30)
+        & (df["30_day_mean_marketcap"] >= market_cap)
     ]
     if df.empty:
         return df
-    #df = df[df["24H Return"] >= 0] # dropping this line in case all tokens have negative returns 
+    # df = df[df["24H Return"] >= 0] # dropping this line in case all tokens have negative returns
     df = metrics.add_7drets(df)
     df = add_intraday_rets(df, lag_return)
     df[lag_col] = df[lag_col].apply(lambda x: round(x * 100, 2))
-    #df = df[df[lag_col] >= 0]
+    # df = df[df[lag_col] >= 0]
     df = df.sort_values(by=lag_col, ascending=False)
 
     return df

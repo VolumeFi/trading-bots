@@ -4,45 +4,40 @@ import psycopg2
 import psycopg2.pool
 from psycopg2.extras import Json
 
-DB_POOL = None
+DB_POOL: psycopg2.pool.SimpleConnectionPool = None
 
 
-def get_pool():
+def init():
     global DB_POOL
-    if DB_POOL is None:
-        DB_POOL = psycopg2.pool.SimpleConnectionPool(
-            1, 20, user="postgres", dbname="momentum_cache"
-        )
-        conn = DB_POOL.getconn()
-        with conn.cursor() as cur:
-            cur.execute(
-                """\
+    DB_POOL = psycopg2.pool.SimpleConnectionPool(
+        1, 20, user="postgres", dbname="momentum_cache"
+    )
+    with get_db() as db:
+        db.execute(
+            """\
 CREATE TABLE IF NOT EXISTS gecko (
-    path TEXT,
-    params JSONB,
-    ts TIMESTAMP WITHOUT TIME ZONE NOT NULL,
-    max_age INTERVAL NOT NULL,
-    value JSONB NOT NULL,
-    PRIMARY KEY (path, params)
+path TEXT,
+params JSONB,
+ts TIMESTAMP WITHOUT TIME ZONE NOT NULL,
+max_age INTERVAL NOT NULL,
+value JSONB NOT NULL,
+PRIMARY KEY (path, params)
 )"""
-            )
-            cur.execute(
-                """\
+        )
+        db.execute(
+            """\
 CREATE TABLE IF NOT EXISTS required_pairs (
-    dex TEXT,
-    from_coin TEXT NOT NULL,
-    to_coin TEXT NOT NULL,
-    PRIMARY KEY (dex, from_coin, to_coin)
+dex TEXT,
+from_coin TEXT NOT NULL,
+to_coin TEXT NOT NULL,
+PRIMARY KEY (dex, from_coin, to_coin)
 )"""
-            )
-            conn.commit()
-        DB_POOL.putconn(conn)
-    return DB_POOL
+        )
 
 
 @contextmanager
 def get_db():
-    conn = get_pool().getconn()
+    conn = DB_POOL.getconn()
     try:
         yield conn.cursor()
         conn.commit()
