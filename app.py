@@ -3,6 +3,7 @@ import sentry_sdk
 from bottle import request
 
 import cache_db
+import gecko
 import momentum_scanner_intraday
 
 sentry_sdk.init(
@@ -34,6 +35,7 @@ def get_high_returns():
 
 def main():
     cache_db.init()
+    gecko.init()
     bottle.run(host="localhost", port=8080)
 
 

@@ -3,16 +3,33 @@ from datetime import datetime, timedelta
 
 import pandas as pd
 import requests
+from requests.adapters import HTTPAdapter, Retry
 
 import cache_db
 
 API_ROOT = "https://pro-api.coingecko.com/api/v3"
 CG_KEY = os.environ["CG_KEY"]
 
+SESSION: requests.Session = None
+
+
+def init():
+    global SESSION
+    SESSION = requests.Session()
+    SESSION.mount(
+        "http://",
+        HTTPAdapter(
+            max_retries=Retry(
+                total=5,
+                backoff_factor=0.1,
+            )
+        ),
+    )
+
 
 def get(*args, params: dict = {}):
     path = "/".join(args)
-    f = lambda: requests.get(
+    f = lambda: SESSION.get(
         "/".join((API_ROOT, path)),
         params={**params, "x_cg_pro_api_key": CG_KEY},
         timeout=10,
