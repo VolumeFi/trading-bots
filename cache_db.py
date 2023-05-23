@@ -125,19 +125,21 @@ def warm_cache_loop():
         try:
             with get_db() as db:
                 db.execute(
-                    """SELECT params FROM get_high_returns_warming_params WHERE now() - interval '30 minutes' < ts"""
+                    """SELECT params FROM get_high_returns_warming_params WHERE now() - interval '30 minutes' >= ts"""
                 )
-                kwargs = db.fetchone()
-                if kwargs is not None:
+                out_of_date = db.fetchall()
+            if out_of_date is not None:
+                for kwargs in out_of_date:
                     kwargs = kwargs[0]
                     logging.info(
                         "Running warming query with parameters %s", json.dumps(kwargs)
                     )
                     momentum_scanner_intraday.get_high_returns(**kwargs)
-                    db.execute(
-                        """INSERT INTO get_high_returns_warming_params VALUES (%s, now())""",
-                        (Json(kwargs),),
-                    )
+                    with get_db() as db:
+                        db.execute(
+                            """INSERT INTO get_high_returns_warming_params VALUES (%s, now())""",
+                            (Json(kwargs),),
+                        )
                 else:
                     logging.info("Cache is warm")
         except Exception:
