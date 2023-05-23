@@ -137,7 +137,12 @@ def warm_cache_loop():
                     momentum_scanner_intraday.get_high_returns(**kwargs)
                     with get_db() as db:
                         db.execute(
-                            """INSERT INTO get_high_returns_warming_params VALUES (%s, now())""",
+                            """\
+INSERT INTO get_high_returns_warming_params
+VALUES (%s, now())
+ON CONFLICT (params)
+DO UPDATE SET ts = EXCLUDED.ts\
+""",
                             (Json(kwargs),),
                         )
                 else:
