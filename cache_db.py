@@ -132,7 +132,7 @@ def warm_cache_loop():
                     momentum_scanner_intraday.get_high_returns(**kwargs)
                     db.execute(
                         """INSERT INTO get_high_returns_warming_params VALUES (%s, now())""",
-                        (Json(kwargs)),
+                        (Json(kwargs),),
                     )
         except Exception:
             logging.exception("Error while attempting cache warming query")
