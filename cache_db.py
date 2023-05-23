@@ -1,3 +1,6 @@
+import logging
+import threading
+import time
 from contextlib import contextmanager
 
 import psycopg2
@@ -5,6 +8,7 @@ import psycopg2.pool
 from psycopg2.extras import Json
 
 DB_POOL: psycopg2.pool.SimpleConnectionPool = None
+REFRESH = threading.local()
 
 
 def init():
@@ -33,6 +37,28 @@ to_coin TEXT NOT NULL,
 PRIMARY KEY (dex, from_coin, to_coin)
 )"""
         )
+        db.execute(
+            """\
+CREATE TABLE IF NOT EXISTS get_high_returns_warming_params (
+params JSONB PRIMARY KEY,
+ts TIMESTAMP WITHOUT TIME ZONE NOT NULL
+)"""
+        )
+        for dex in ["uniswap_v2", "uniswap_v3"]:
+            db.execute(
+                """INSERT INTO get_high_returns_warming_params VALUES (%s, now())""",
+                (
+                    Json(
+                        {
+                            "dex": dex,
+                            "lag_return": 6,
+                            "daily_volume": 0,
+                            "vol_30": 0,
+                            "market_cap": 0,
+                        }
+                    ),
+                ),
+            )
 
 
 @contextmanager
@@ -53,9 +79,9 @@ SELECT value
 FROM gecko
 WHERE path = %s
 AND params = %s
-AND now() - max_age <= ts
+AND (%s AND now() - max_age <= ts)
 """,
-            (path, Json(params)),
+            (path, Json(params), getattr(REFRESH, "use_cache", True)),
         )
         value = db.fetchone()
         if value is not None:
@@ -64,7 +90,7 @@ AND now() - max_age <= ts
         db.execute(
             """\
 INSERT INTO gecko(path, params, ts, max_age, value)
-VALUES (%s, %s, now(), interval '10 minutes', %s)
+VALUES (%s, %s, now(), interval '1 hour', %s)
 ON CONFLICT (path, params) DO UPDATE 
 SET
      ts = EXCLUDED.ts,
@@ -85,3 +111,26 @@ SELECT from_coin, to_coin FROM required_pairs
 """
         )
         return list(db.fetchall())
+
+
+def warm_cache_loop():
+    import momentum_scanner_intraday
+
+    REFRESH.use_cache = False
+    while True:
+        try:
+            with get_db() as db:
+                db.execute(
+                    """SELECT params FROM get_high_returns_warming_params WHERE now() - interval '30 minutes' < ts"""
+                )
+                kwargs = db.fetchone()
+                if kwargs is not None:
+                    kwargs = kwargs[0]
+                    momentum_scanner_intraday.get_high_returns(**kwargs)
+                    db.execute(
+                        """INSERT INTO get_high_returns_warming_params VALUES (%s, now())""",
+                        (Json(kwargs)),
+                    )
+        except Exception:
+            logging.exception("Error while attempting cache warming query")
+        time.sleep(60)

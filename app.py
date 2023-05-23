@@ -1,3 +1,5 @@
+import threading
+
 import bottle
 import sentry_sdk
 from bottle import request
@@ -36,6 +38,7 @@ def get_high_returns():
 def main():
     cache_db.init()
     gecko.init()
+    threading.Thread(target=cache_db.warm_cache_loop).start()
     bottle.run(host="localhost", port=8080)
 
 
