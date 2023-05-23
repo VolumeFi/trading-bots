@@ -46,7 +46,10 @@ ts TIMESTAMP WITHOUT TIME ZONE NOT NULL
         )
         for dex in ["uniswap_v2", "uniswap_v3"]:
             db.execute(
-                """INSERT INTO get_high_returns_warming_params VALUES (%s, now())""",
+                """\
+INSERT INTO get_high_returns_warming_params
+VALUES (%s, now() - interval '1 hour')
+ON CONFLICT DO NOTHING""",
                 (
                     Json(
                         {
