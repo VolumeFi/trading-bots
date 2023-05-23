@@ -1,3 +1,4 @@
+import json
 import logging
 import threading
 import time
@@ -129,11 +130,16 @@ def warm_cache_loop():
                 kwargs = db.fetchone()
                 if kwargs is not None:
                     kwargs = kwargs[0]
+                    logging.info(
+                        "Running warming query with parameters %s", json.dumps(kwargs)
+                    )
                     momentum_scanner_intraday.get_high_returns(**kwargs)
                     db.execute(
                         """INSERT INTO get_high_returns_warming_params VALUES (%s, now())""",
                         (Json(kwargs),),
                     )
+                else:
+                    logging.info("Cache is warm")
         except Exception:
             logging.exception("Error while attempting cache warming query")
         time.sleep(60)
