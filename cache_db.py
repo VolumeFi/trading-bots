@@ -85,7 +85,7 @@ SELECT value
 FROM gecko
 WHERE path = %s
 AND params = %s
-AND (%s AND ts < now() - max_age)
+AND (%s AND now() - max_age <= ts)
 """,
             (path, Json(params), getattr(REFRESH, "use_cache", True)),
         )
