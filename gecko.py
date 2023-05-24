@@ -51,14 +51,15 @@ def exchanges(dex):
     df.index.name = "pair"
     return df
 
-def exchanges_multi(dex, n_item = 2):
+
+def exchanges_multi(dex, n_item=2):
     df = exchanges(dex)
     if n_item > 1:
         for i in range(n_item):
             tmp_df = exchanges(dex)
             for j in tmp_df.index:
                 if j not in df.index:
-                    df.loc[j, 'volume'] = tmp_df.loc[j, 'volume']
+                    df.loc[j, "volume"] = tmp_df.loc[j, "volume"]
 
     return df
 
