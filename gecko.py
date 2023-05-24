@@ -1,3 +1,5 @@
+import json
+import logging
 import os
 from datetime import datetime, timedelta
 
@@ -29,13 +31,13 @@ def init():
 
 def get(*args, params: dict = {}):
     path = "/".join(args)
+    logging.debug("coingecko %s %s", path, json.dumps(params))
     f = lambda: SESSION.get(
         "/".join((API_ROOT, path)),
         params={**params, "x_cg_pro_api_key": CG_KEY},
         timeout=10,
     ).json()
     return cache_db.try_cache(path, params, f)
-    # return f() # for testing without DB caching, uncomment this line and comment out the line above
 
 
 def exchanges(dex):

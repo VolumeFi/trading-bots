@@ -37,7 +37,7 @@ def get_high_returns():
 
 
 def main():
-    logging.basicConfig(level=logging.INFO)
+    logging.basicConfig(level=logging.DEBUG)
     cache_db.init()
     gecko.init()
     threading.Thread(target=cache_db.warm_cache_loop).start()
