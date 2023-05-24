@@ -30,10 +30,10 @@ def init():
 
 
 def get(*args, params: dict = {}):
-    path = "/".join([API_ROOT, *args])
-    logging.debug("%s %s", path, json.dumps(params))
+    path = "/".join(args)
+    logging.debug("%s/%s %s", API_ROOT, path, json.dumps(params))
     f = lambda: SESSION.get(
-        path,
+        "/".join(("API_ROOT", path)),
         params={**params, "x_cg_pro_api_key": CG_KEY},
         timeout=10,
     ).json()
