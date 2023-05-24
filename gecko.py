@@ -30,10 +30,10 @@ def init():
 
 
 def get(*args, params: dict = {}):
-    path = "/".join(args)
-    logging.debug("coingecko %s %s", path, json.dumps(params))
+    path = "/".join([API_ROOT, *args])
+    logging.debug("%s %s", path, json.dumps(params))
     f = lambda: SESSION.get(
-        "/".join((API_ROOT, path)),
+        path,
         params={**params, "x_cg_pro_api_key": CG_KEY},
         timeout=10,
     ).json()
@@ -78,6 +78,12 @@ def market_chart(coin, *, days):
     chart = get(
         "coins", coin, "market_chart", params={"vs_currency": "usd", "days": days}
     )
+    if chart == {"error": "coin not found"}:
+        chart = {
+            "prices": [],
+            "market_caps": [],
+            "total_volumes": [],
+        }
     prices = [(millis_to_datetime(dt), pr) for dt, pr in chart["prices"]]
     market_caps = [(millis_to_datetime(dt), mc) for dt, mc in chart["market_caps"]]
     total_volumes = [(millis_to_datetime(dt), tv) for dt, tv in chart["total_volumes"]]
