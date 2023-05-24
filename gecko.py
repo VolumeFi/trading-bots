@@ -33,7 +33,7 @@ def get(*args, params: dict = {}):
     path = "/".join(args)
     logging.debug("%s/%s %s", API_ROOT, path, json.dumps(params))
     f = lambda: SESSION.get(
-        "/".join(("API_ROOT", path)),
+        "/".join((API_ROOT, path)),
         params={**params, "x_cg_pro_api_key": CG_KEY},
         timeout=10,
     ).json()
