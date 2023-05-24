@@ -35,7 +35,7 @@ def get(*args, params: dict = {}):
     def fetch():
         url = "/".join((API_ROOT, path))
         logging.info("%s %s", url, json.dumps(params))
-        SESSION.get(
+        return SESSION.get(
             url,
             params={**params, "x_cg_pro_api_key": CG_KEY},
             timeout=10,
