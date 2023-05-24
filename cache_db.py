@@ -11,6 +11,8 @@ from psycopg2.extras import Json
 DB_POOL: psycopg2.pool.SimpleConnectionPool = None
 REFRESH = threading.local()
 
+WARM_DEXES = ("pancakeswap_new", "uniswap_v2", "uniswap_v3")
+
 
 def init():
     global DB_POOL
@@ -45,7 +47,7 @@ params JSONB PRIMARY KEY,
 ts TIMESTAMP WITHOUT TIME ZONE NOT NULL
 )"""
         )
-        for dex in ["uniswap_v2", "uniswap_v3"]:
+        for dex in WARM_DEXES:
             db.execute(
                 """\
 INSERT INTO get_high_returns_warming_params
@@ -141,7 +143,7 @@ def warm_cache_loop():
 INSERT INTO get_high_returns_warming_params
 VALUES (%s, now())
 ON CONFLICT (params)
-DO UPDATE SET ts = EXCLUDED.ts\
+DO UPDATE SET ts = EXCLUDED.ts
 """,
                             (Json(kwargs),),
                         )
