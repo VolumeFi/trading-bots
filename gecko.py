@@ -83,7 +83,7 @@ def market_chart(coin, *, days):
         "coins", coin, "market_chart", params={"vs_currency": "usd", "days": days}
     )
     if chart == {"error": "coin not found"}:
-        logging.info("coin not found for %s")
+        logging.info("coin not found for %s", coin)
         chart = {
             "prices": [],
             "market_caps": [],
