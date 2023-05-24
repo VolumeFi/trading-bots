@@ -31,13 +31,17 @@ def init():
 
 def get(*args, params: dict = {}):
     path = "/".join(args)
-    logging.debug("%s/%s %s", API_ROOT, path, json.dumps(params))
-    f = lambda: SESSION.get(
-        "/".join((API_ROOT, path)),
-        params={**params, "x_cg_pro_api_key": CG_KEY},
-        timeout=10,
-    ).json()
-    return cache_db.try_cache(path, params, f)
+
+    def fetch():
+        url = "/".join((API_ROOT, path))
+        logging.info("%s %s", url, json.dumps(params))
+        SESSION.get(
+            url,
+            params={**params, "x_cg_pro_api_key": CG_KEY},
+            timeout=10,
+        ).json()
+
+    return cache_db.try_cache(path, params, fetch)
 
 
 def exchanges(dex):
@@ -79,6 +83,7 @@ def market_chart(coin, *, days):
         "coins", coin, "market_chart", params={"vs_currency": "usd", "days": days}
     )
     if chart == {"error": "coin not found"}:
+        logging.info("coin not found for %s")
         chart = {
             "prices": [],
             "market_caps": [],
