@@ -51,7 +51,7 @@ ts TIMESTAMP WITHOUT TIME ZONE NOT NULL
             db.execute(
                 """\
 INSERT INTO get_high_returns_warming_params
-VALUES (%s, now() - interval '1 hour')
+VALUES (%s, now() - interval '3 hours')
 ON CONFLICT DO NOTHING""",
                 (
                     Json(
@@ -85,7 +85,7 @@ SELECT value
 FROM gecko
 WHERE path = %s
 AND params = %s
-AND (%s AND now() - max_age <= ts)
+AND (%s AND ts < now() - max_age)
 """,
             (path, Json(params), getattr(REFRESH, "use_cache", True)),
         )
@@ -96,7 +96,7 @@ AND (%s AND now() - max_age <= ts)
         db.execute(
             """\
 INSERT INTO gecko(path, params, ts, max_age, value)
-VALUES (%s, %s, now(), interval '1 hour', %s)
+VALUES (%s, %s, now(), interval '4 hours', %s)
 ON CONFLICT (path, params) DO UPDATE 
 SET
      ts = EXCLUDED.ts,
@@ -128,7 +128,7 @@ def warm_cache_loop():
             with get_db() as db:
                 db.execute("""DELETE FROM gecko where ts < now() - max_age""")
                 db.execute(
-                    """SELECT params FROM get_high_returns_warming_params WHERE now() - interval '30 minutes' >= ts"""
+                    """SELECT params FROM get_high_returns_warming_params WHERE ts < now() - interval '3 hours'"""
                 )
                 out_of_date = db.fetchall()
             if out_of_date is not None:
