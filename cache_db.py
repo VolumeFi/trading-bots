@@ -126,6 +126,7 @@ def warm_cache_loop():
     while True:
         try:
             with get_db() as db:
+                db.execute("""DELETE FROM gecko where ts < now() - max_age""")
                 db.execute(
                     """SELECT params FROM get_high_returns_warming_params WHERE now() - interval '30 minutes' >= ts"""
                 )
