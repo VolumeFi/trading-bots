@@ -118,7 +118,8 @@ def get_pairs(dex):
 SELECT from_coin, to_coin FROM required_pairs
  WHERE dex = %s
 """,
-            (dex,))
+            (dex,),
+        )
         return cur.fetchall()
 
 
@@ -130,16 +131,18 @@ def warm_cache_loop():
         try:
             with DB_POOL.connection() as conn:
                 conn.execute("""DELETE FROM gecko where ts < now() - max_age""")
-                conn.execute(
-                    """SELECT params FROM get_high_returns_warming_params WHERE ts < now() - interval '3 hours'"""
-                )
-                out_of_date = conn.fetchall()
+                with conn.cursor() as cur:
+                    cur.execute(
+                        """SELECT params FROM get_high_returns_warming_params WHERE ts < now() - interval '3 hours'"""
+                    )
+                    out_of_date = cur.fetchall()
             if out_of_date is not None:
                 with connect():
                     for kwargs in out_of_date:
                         kwargs = kwargs[0]
                         logging.info(
-                            "Running warming query with parameters %s", json.dumps(kwargs)
+                            "Running warming query with parameters %s",
+                            json.dumps(kwargs),
                         )
                         momentum_scanner_intraday.get_high_returns(**kwargs)
                         CONN.execute(
