@@ -1,4 +1,5 @@
 /__pycache__
+/bench.py
 /data.json
 /momentum_cache.db
 /momentum_cache.db-shm

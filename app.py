@@ -17,21 +17,15 @@ sentry_sdk.init(
 
 @bottle.post("/get_high_returns")
 def get_high_returns():
-    dex, lag_return, daily_volume = (
-        request.json["dex"],
-        int(request.json["lag_return"]),
-        int(request.json["daily_volume"]),
-    )
-    if "market_cap" in request.json.keys() or "vol_30" in request.json.keys():
-        market_cap, vol_30 = (
-            int(request.json["market_cap"]),
-            int(request.json["vol_30"]),
-        )
+    dex = request.json["dex"]
+    lag_return = int(request.json["lag_return"])
+    daily_volume = int(request.json["daily_volume"])
+    market_cap = int(request.json.get("market_cap", 100))
+    vol_30 = int(request.json.get("vol_30", 100))
+    with cache_db.connect():
         df = momentum_scanner_intraday.get_high_returns(
             dex, lag_return, daily_volume, vol_30, market_cap
         )
-    else:
-        df = momentum_scanner_intraday.get_high_returns(dex, lag_return, daily_volume)
     df.dropna(how="all", axis=1, inplace=True)
     return df.to_dict()
 

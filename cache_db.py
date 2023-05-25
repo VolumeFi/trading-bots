@@ -4,23 +4,35 @@ import threading
 import time
 from contextlib import contextmanager
 
-import psycopg2
-import psycopg2.pool
-from psycopg2.extras import Json
+from psycopg.types.json import Jsonb
+from psycopg_pool.pool import ConnectionPool
 
-DB_POOL: psycopg2.pool.SimpleConnectionPool = None
+DB_POOL: ConnectionPool = None
 REFRESH = threading.local()
+CONN = threading.local()
 
 WARM_DEXES = ("pancakeswap_new", "uniswap_v2", "uniswap_v3")
 
 
+@contextmanager
+def connect():
+    with DB_POOL.connection() as conn:
+        CONN.commit = conn.commit
+        CONN.cursor = conn.cursor
+        CONN.execute = conn.execute
+        try:
+            yield
+        finally:
+            delattr(CONN, "commit")
+            delattr(CONN, "cursor")
+            delattr(CONN, "execute")
+
+
 def init():
     global DB_POOL
-    DB_POOL = psycopg2.pool.SimpleConnectionPool(
-        1, 20, user="postgres", dbname="momentum_cache"
-    )
-    with get_db() as db:
-        db.execute(
+    DB_POOL = ConnectionPool("dbname=momentum_cache user=postgres")
+    with DB_POOL.connection() as conn:
+        conn.execute(
             """\
 CREATE TABLE IF NOT EXISTS gecko (
 path TEXT,
@@ -31,7 +43,7 @@ value JSONB NOT NULL,
 PRIMARY KEY (path, params)
 )"""
         )
-        db.execute(
+        conn.execute(
             """\
 CREATE TABLE IF NOT EXISTS required_pairs (
 dex TEXT,
@@ -40,7 +52,7 @@ to_coin TEXT NOT NULL,
 PRIMARY KEY (dex, from_coin, to_coin)
 )"""
         )
-        db.execute(
+        conn.execute(
             """\
 CREATE TABLE IF NOT EXISTS get_high_returns_warming_params (
 params JSONB PRIMARY KEY,
@@ -48,13 +60,13 @@ ts TIMESTAMP WITHOUT TIME ZONE NOT NULL
 )"""
         )
         for dex in WARM_DEXES:
-            db.execute(
+            conn.execute(
                 """\
 INSERT INTO get_high_returns_warming_params
 VALUES (%s, now() - interval '3 hours')
 ON CONFLICT DO NOTHING""",
                 (
-                    Json(
+                    Jsonb(
                         {
                             "dex": dex,
                             "lag_return": 6,
@@ -67,19 +79,9 @@ ON CONFLICT DO NOTHING""",
             )
 
 
-@contextmanager
-def get_db():
-    conn = DB_POOL.getconn()
-    try:
-        yield conn.cursor()
-        conn.commit()
-    finally:
-        DB_POOL.putconn(conn)
-
-
 def try_cache(path, params, f):
-    with get_db() as db:
-        db.execute(
+    with CONN.cursor() as cur:
+        cur.execute(
             """\
 SELECT value
 FROM gecko
@@ -87,13 +89,13 @@ WHERE path = %s
 AND params = %s
 AND (%s AND now() - max_age <= ts)
 """,
-            (path, Json(params), getattr(REFRESH, "use_cache", True)),
+            (path, Jsonb(params), getattr(REFRESH, "use_cache", True)),
         )
-        value = db.fetchone()
+        value = cur.fetchone()
         if value is not None:
             return value[0]
         value = f()
-        db.execute(
+        cur.execute(
             """\
 INSERT INTO gecko(path, params, ts, max_age, value)
 VALUES (%s, %s, now(), interval '4 hours', %s)
@@ -103,20 +105,21 @@ SET
 max_age = EXCLUDED.max_age,
   value = EXCLUDED.value
 """,
-            (path, Json(params), Json(value)),
+            (path, Jsonb(params), Jsonb(value)),
         )
+        CONN.commit()
         return value
 
 
 def get_pairs(dex):
-    with get_db() as db:
-        db.execute(
+    with CONN.cursor() as cur:
+        cur.execute(
             """\
 SELECT from_coin, to_coin FROM required_pairs
  WHERE dex = %s
-"""
-        )
-        return list(db.fetchall())
+""",
+            (dex,))
+        return cur.fetchall()
 
 
 def warm_cache_loop():
@@ -125,31 +128,31 @@ def warm_cache_loop():
     REFRESH.use_cache = False
     while True:
         try:
-            with get_db() as db:
-                db.execute("""DELETE FROM gecko where ts < now() - max_age""")
-                db.execute(
+            with DB_POOL.connection() as conn:
+                conn.execute("""DELETE FROM gecko where ts < now() - max_age""")
+                conn.execute(
                     """SELECT params FROM get_high_returns_warming_params WHERE ts < now() - interval '3 hours'"""
                 )
-                out_of_date = db.fetchall()
+                out_of_date = conn.fetchall()
             if out_of_date is not None:
-                for kwargs in out_of_date:
-                    kwargs = kwargs[0]
-                    logging.info(
-                        "Running warming query with parameters %s", json.dumps(kwargs)
-                    )
-                    momentum_scanner_intraday.get_high_returns(**kwargs)
-                    with get_db() as db:
-                        db.execute(
+                with connect():
+                    for kwargs in out_of_date:
+                        kwargs = kwargs[0]
+                        logging.info(
+                            "Running warming query with parameters %s", json.dumps(kwargs)
+                        )
+                        momentum_scanner_intraday.get_high_returns(**kwargs)
+                        CONN.execute(
                             """\
 INSERT INTO get_high_returns_warming_params
 VALUES (%s, now())
 ON CONFLICT (params)
 DO UPDATE SET ts = EXCLUDED.ts
 """,
-                            (Json(kwargs),),
+                            (Jsonb(kwargs),),
                         )
-                else:
-                    logging.info("Cache is warm")
+            else:
+                logging.info("Cache is warm")
         except Exception:
             logging.exception("Error while attempting cache warming query")
         time.sleep(60)

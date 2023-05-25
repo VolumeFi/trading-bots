@@ -68,7 +68,7 @@ def find_liquidity(coin, dex):
 
 
 def get_high_returns(
-    dex: str, lag_return: int, daily_volume: int, vol_30=100, market_cap=100
+        dex: str, lag_return: int, daily_volume: int, vol_30: int, market_cap: int
 ):
     vols = gecko.exchanges(dex)
     lag_col = f"{lag_return}H Return"
@@ -78,7 +78,7 @@ def get_high_returns(
     df = df[
         (df["30_day_mean_volume"] >= vol_30)
         & (df["30_day_mean_marketcap"] >= market_cap)
-    ]
+        ]
     if df.empty:
         return df
     # df = df[df["24H Return"] >= 0] # dropping this line in case all tokens have negative returns
