@@ -63,7 +63,7 @@ ts TIMESTAMP WITHOUT TIME ZONE NOT NULL
             conn.execute(
                 """\
 INSERT INTO get_high_returns_warming_params
-VALUES (%s, now() - interval '3 hours')
+VALUES (%s, now() - interval '30 minutes')
 ON CONFLICT DO NOTHING""",
                 (
                     Jsonb(
@@ -98,7 +98,7 @@ AND (%s AND now() - max_age <= ts)
         cur.execute(
             """\
 INSERT INTO gecko(path, params, ts, max_age, value)
-VALUES (%s, %s, now(), interval '4 hours', %s)
+VALUES (%s, %s, now(), interval '3 hours', %s)
 ON CONFLICT (path, params) DO UPDATE 
 SET
      ts = EXCLUDED.ts,
@@ -130,10 +130,11 @@ def warm_cache_loop():
     while True:
         try:
             with DB_POOL.connection() as conn:
+                # GC old data.
                 conn.execute("""DELETE FROM gecko where ts < now() - max_age""")
                 with conn.cursor() as cur:
                     cur.execute(
-                        """SELECT params FROM get_high_returns_warming_params WHERE ts < now() - interval '3 hours'"""
+                        """SELECT params FROM get_high_returns_warming_params WHERE ts < now() - interval '30 minutes'"""
                     )
                     out_of_date = cur.fetchall()
             if out_of_date is not None:
