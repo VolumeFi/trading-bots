@@ -114,6 +114,15 @@ def price(coin):
 def query_coin(coin):
     return get("coins", coin)
 
+def query_coins_markets(coin):
+    return get(
+        "coins",
+        "markets",
+        params={
+            "ids": ",".join(sorted(coin)),
+            "vs_currencies": "usd",
+        },
+    )
 
 def simple_price_1d(coins):
     return get(
