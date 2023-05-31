@@ -120,7 +120,7 @@ def query_coins_markets(*coin):
         "markets",
         params={
             "ids": ",".join(sorted(coin)),
-            "vs_currencies": "usd",
+            "vs_currency": "usd",
         },
     )
 
