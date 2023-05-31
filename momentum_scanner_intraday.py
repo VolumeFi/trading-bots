@@ -17,12 +17,8 @@ def token_volume_marketcap(token):
     return vol_30, mc_30
 
 def token_fdv(token):
-    df = gecko.query_coin_markets(token)
-    try:
-        fdv = df[0]['fully_diluted_valuation']
-    except Exception as e:
-        print(e)
-        fdv = None
+    token_info = gecko.query_coins_markets(token)
+    fdv = token_info[0]["fully_diluted_valuation"]
     return fdv
 
 def add_intraday_rets(df, lag):
