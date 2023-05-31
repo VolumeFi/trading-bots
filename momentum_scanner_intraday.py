@@ -116,6 +116,7 @@ def get_high_returns(
     df = df.sort_values(by=lag_col, ascending=False)
     df = add_fdv(df)
     df = add_best_liquidity(df, dex)
+    df = df.fillna(0)
 
     return df
 
