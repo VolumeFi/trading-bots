@@ -107,12 +107,12 @@ def query_coin(coin):
     return get("coins", coin)
 
 
-def query_coins_markets(*coin):
+def query_coins_markets(coins):
     return get(
         "coins",
         "markets",
         params={
-            "ids": ",".join(sorted(coin)),
+            "ids": ",".join(sorted(coins)),
             "vs_currency": "usd",
         },
     )

@@ -17,12 +17,6 @@ def token_volume_marketcap(token):
     return vol_30, mc_30
 
 
-def token_fdv(token):
-    token_info = gecko.query_coins_markets(token)
-    fdv = token_info[0]["fully_diluted_valuation"]
-    return fdv
-
-
 def add_intraday_rets(df, lag):
     col_name = f"{lag}H Return"
     df[col_name] = None
@@ -50,8 +44,13 @@ def add_volume_marketcap(df):
 
 
 def add_fdv(df):
-    for token in df.index:
-        df.loc[token, "fully_diluted_valuation"] = token_fdv(token)
+    fdv = pd.Series(
+        {
+            x["id"]: x["fully_diluted_valuation"]
+            for x in gecko.query_coins_markets(df.index)
+        }
+    )
+    df["fully_diluted_valuation"] = fdv
     return df
 
 
