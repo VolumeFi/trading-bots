@@ -1,7 +1,6 @@
 import json
 import logging
 import os
-from datetime import datetime, timedelta
 
 import pandas as pd
 import requests
@@ -70,13 +69,6 @@ def exchanges_multi(dex, n_item=2):
     return df
 
 
-def millis_to_datetime(dt_int):
-    """
-    Convert millis-since-epoch to a datetime.
-    """
-    return datetime(1970, 1, 1, 0, 0, 0) + timedelta(seconds=int(dt_int) / 1e3)
-
-
 def market_chart(coin, *, days):
     assert days in (1, 100)
     chart = get(
@@ -89,12 +81,12 @@ def market_chart(coin, *, days):
             "market_caps": [],
             "total_volumes": [],
         }
-    prices = [(millis_to_datetime(dt), pr) for dt, pr in chart["prices"]]
-    market_caps = [(millis_to_datetime(dt), mc) for dt, mc in chart["market_caps"]]
-    total_volumes = [(millis_to_datetime(dt), tv) for dt, tv in chart["total_volumes"]]
-    pr = pd.DataFrame(prices, columns=["ts", "price"]).set_index("ts")
-    mc = pd.DataFrame(market_caps, columns=["ts", "market_caps"]).set_index("ts")
-    tv = pd.DataFrame(total_volumes, columns=["ts", "total_volumes"]).set_index("ts")
+    pr = pd.DataFrame(chart["prices"], columns=["ts", "price"])
+    mc = pd.DataFrame(chart["market_caps"], columns=["ts", "market_caps"])
+    tv = pd.DataFrame(chart["total_volumes"], columns=["ts", "total_volumes"])
+    for df in [pr, mc, tv]:
+        df["ts"] = pd.to_datetime(df["ts"], unit="ms")
+        df.set_index("ts", inplace=True)
     df = pd.concat([pr, mc, tv], axis=1)
     return df
 
@@ -102,7 +94,7 @@ def market_chart(coin, *, days):
 def coin_return_intraday(coin, lag):
     df = market_chart(coin, days=1)
     current = df.index[-1]
-    prback = df["price"].asof(current - timedelta(hours=lag))
+    prback = df["price"].asof(current - pd.Timedelta(hours=lag))
     prcurrent = df["price"].iloc[-1]
     return (prcurrent - prback) / prback
 
