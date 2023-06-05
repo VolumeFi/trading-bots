@@ -3,6 +3,7 @@ import logging
 import threading
 import time
 from contextlib import contextmanager
+from datetime import timedelta
 
 from psycopg.types.json import Jsonb
 from psycopg_pool.pool import ConnectionPool
@@ -12,6 +13,7 @@ REFRESH = threading.local()
 CONN = threading.local()
 
 WARM_DEXES = ("pancakeswap_new", "uniswap_v2", "uniswap_v3")
+WARM_INTERVAL = timedelta(hours=1)
 
 
 @contextmanager
@@ -63,7 +65,7 @@ ts TIMESTAMP WITHOUT TIME ZONE NOT NULL
             conn.execute(
                 """\
 INSERT INTO get_high_returns_warming_params
-VALUES (%s, now() - interval '30 minutes')
+VALUES (%s, now() - %s)
 ON CONFLICT DO NOTHING""",
                 (
                     Jsonb(
@@ -75,6 +77,7 @@ ON CONFLICT DO NOTHING""",
                             "market_cap": 0,
                         }
                     ),
+                    WARM_INTERVAL,
                 ),
             )
 
@@ -101,14 +104,19 @@ AND (
         cur.execute(
             """\
 INSERT INTO gecko(path, params, ts, max_age, value)
-VALUES (%s, %s, now(), interval '3 hours', %s)
+VALUES (%s, %s, now(), %s, %s)
 ON CONFLICT (path, params) DO UPDATE 
 SET
      ts = EXCLUDED.ts,
 max_age = EXCLUDED.max_age,
   value = EXCLUDED.value
 """,
-            (path, Jsonb(params), Jsonb(value)),
+            (
+                path,
+                Jsonb(params),
+                3 * WARM_INTERVAL + timedelta(minutes=5),
+                Jsonb(value),
+            ),
         )
         CONN.commit()
         return value
@@ -137,7 +145,8 @@ def warm_cache_loop():
                 conn.execute("""DELETE FROM gecko where ts < now() - max_age""")
                 with conn.cursor() as cur:
                     cur.execute(
-                        """SELECT params FROM get_high_returns_warming_params WHERE ts < now() - interval '30 minutes'"""
+                        """SELECT params FROM get_high_returns_warming_params WHERE ts < now() - %s""",
+                        (WARM_INTERVAL,),
                     )
                     out_of_date = cur.fetchall()
             if out_of_date is not None:
