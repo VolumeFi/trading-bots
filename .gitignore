@@ -1,3 +1,5 @@
+/.ipynb_checkpoints
+/Untitled.ipynb
 /__pycache__
 /bench.py
 /data.json
@@ -5,8 +7,3 @@
 /momentum_cache.db-shm
 /momentum_cache.db-wal
 /output.prof
-Untitled.ipynb
-pyproject.toml
-pyproject.toml
-.ipynb_checkpoints/Untitled-checkpoint.ipynb
-pyproject.toml

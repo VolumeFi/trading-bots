@@ -16,10 +16,12 @@ def token_volume_marketcap(token):
     mc_30 = df["market_caps"].iloc[-30:].mean()
     return vol_30, mc_30
 
+
 def token_fdv(token):
     token_info = gecko.query_coins_markets(token)
     fdv = token_info[0]["fully_diluted_valuation"]
     return fdv
+
 
 def add_intraday_rets(df, lag):
     col_name = f"{lag}H Return"
@@ -46,10 +48,12 @@ def add_volume_marketcap(df):
         df.loc[token, "30_day_mean_marketcap"] = mc_30
     return df
 
+
 def add_fdv(df):
     for token in df.index:
-        df.loc[token, 'fully_diluted_valuation'] = token_fdv(token)
+        df.loc[token, "fully_diluted_valuation"] = token_fdv(token)
     return df
+
 
 def get_risk_query(token, stoploss=0.05, profittaking=0.05):
     price = gecko.simple_price_1d([token])[token]["usd"]
@@ -74,12 +78,13 @@ def find_liquidity(coin, dex):
                 ticker["volume"],
             )
 
+
 def find_best_liquidity(coin, dex):
     best_volume = 0
-    best_pair = ''
+    best_pair = ""
     for ticker in gecko.query_coin(coin)["tickers"]:
         if ticker["market"]["identifier"] == dex:
-            pair = ticker["target_coin_id"] +  "<>" + ticker["coin_id"]
+            pair = ticker["target_coin_id"] + "<>" + ticker["coin_id"]
             volume = float(ticker["volume"])
             if volume > best_volume:
                 best_pair = pair
@@ -87,12 +92,14 @@ def find_best_liquidity(coin, dex):
 
     return best_volume, best_pair
 
+
 def add_best_liquidity(df, dex):
     for token in df.index:
         best_volume, best_pair = find_best_liquidity(token, dex)
-        df.loc[token, 'best_volume'] = best_volume
-        df.loc[token, 'best_pair'] = best_pair
+        df.loc[token, "best_volume"] = best_volume
+        df.loc[token, "best_pair"] = best_pair
     return df
+
 
 def get_high_returns(
     dex: str, lag_return: int, daily_volume: int, vol_30: int, market_cap: int
