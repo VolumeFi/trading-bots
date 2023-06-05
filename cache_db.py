@@ -87,7 +87,10 @@ SELECT value
 FROM gecko
 WHERE path = %s
 AND params = %s
-AND (%s AND now() - max_age <= ts)
+AND (
+  now() - interval '5 minutes' <= ts -- Ignore use_cache if this entry is very young.
+  OR (%s AND now() - max_age <= ts)
+)
 """,
             (path, Jsonb(params), getattr(REFRESH, "use_cache", True)),
         )
