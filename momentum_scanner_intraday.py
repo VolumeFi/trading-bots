@@ -84,7 +84,7 @@ def find_best_liquidity(coin, dex):
     for ticker in gecko.query_coin(coin)["tickers"]:
         if ticker["market"]["identifier"] == dex:
             pair = ticker["target_coin_id"] + "<>" + ticker["coin_id"]
-            volume = float(ticker["volume"])
+            volume = float(ticker["converted_volume"]["usd"])
             if volume > best_volume:
                 best_pair = pair
                 best_volume = volume
