@@ -1,3 +1,4 @@
+import json
 import logging
 import threading
 
@@ -27,7 +28,8 @@ def get_high_returns():
             dex, lag_return, daily_volume, vol_30, market_cap
         )
     df.dropna(how="all", axis=1, inplace=True)
-    return df.to_dict()
+    df.fillna(0, inplace=True)
+    return json.dumps(df.to_dict(), sort_keys=True)
 
 
 def main():
