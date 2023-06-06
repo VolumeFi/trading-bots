@@ -1,3 +1,4 @@
+import itertools
 import json
 import logging
 import os
@@ -44,28 +45,22 @@ def get(*args, params: dict = {}):
 
 
 def exchanges(dex):
-    data = [
-        {
-            "pair": ticker["coin_id"] + "<>" + ticker["target_coin_id"],
-            "volume": ticker["converted_volume"]["usd"],
-        }
-        for ticker in get("exchanges", dex)["tickers"]
-    ]
+    data = []
+    for page in range(1, 2):
+        tickers = get("exchanges", dex, "tickers", params={"page": page})["tickers"]
+        if not tickers:
+            break
+        data.extend(
+            {
+                "pair": ticker["coin_id"] + "<>" + ticker["target_coin_id"],
+                "volume": ticker["converted_volume"]["usd"],
+            }
+            for ticker in tickers
+            if not ticker["is_stale"]
+        )
     df = pd.DataFrame(data)
     df.set_index("pair", inplace=True)
     df.index.name = "pair"
-    return df
-
-
-def exchanges_multi(dex, n_item=2):
-    df = exchanges(dex)
-    if n_item > 1:
-        for i in range(n_item):
-            tmp_df = exchanges(dex)
-            for j in tmp_df.index:
-                if j not in df.index:
-                    df.loc[j, "volume"] = tmp_df.loc[j, "volume"]
-
     return df
 
 
@@ -119,12 +114,27 @@ def query_coins_markets(coins):
 
 
 def simple_price_1d(coins):
-    return get(
-        "simple",
-        "price",
-        params={
-            "ids": ",".join(sorted(coins)),
-            "vs_currencies": "usd",
-            "include_24hr_change": "true",
-        },
-    )
+    coins = sorted(coins)
+    prices = {}
+    for batch in batched(coins, 100):
+        prices |= get(
+            "simple",
+            "price",
+            params={
+                "ids": ",".join(sorted(batch)),
+                "vs_currencies": "usd",
+                "include_24hr_change": "true",
+            },
+        )
+    return prices
+
+
+def batched(iterable, n):
+    "Batch data into tuples of length n. The last batch may be shorter."
+    # TODO: This is added to itertools in python 3.12
+    # batched('ABCDEFG', 3) --> ABC DEF G
+    if n < 1:
+        raise ValueError('n must be at least one')
+    it = iter(iterable)
+    while batch := tuple(itertools.islice(it, n)):
+        yield batch
