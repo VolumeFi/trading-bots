@@ -18,12 +18,9 @@ def token_volume_marketcap(token):
 
 
 def add_intraday_rets(df, lag):
-    col_name = f"{lag}H Return"
-    df[col_name] = None
-    for i in df.index:
-        intra_ret = gecko.coin_return_intraday(i, lag)
-        df.loc[i, col_name] = intra_ret
-    return df
+    df[f"{lag}H Return"] = {
+        token: gecko.coin_return_intraday(token, lag) for token in df.index
+    }
 
 
 def add_technical_indicators(df):
@@ -51,7 +48,6 @@ def add_fdv(df):
         }
     )
     df["fully_diluted_valuation"] = fdv
-    return df
 
 
 def get_risk_query(token, stoploss=0.05, profittaking=0.05):
@@ -97,14 +93,12 @@ def add_best_liquidity(df, dex):
         best_volume, best_pair = find_best_liquidity(token, dex)
         df.loc[token, "best_volume"] = best_volume
         df.loc[token, "best_pair"] = best_pair
-    return df
 
 
 def get_high_returns(
     dex: str, lag_return: int, daily_volume: int, vol_30: int, market_cap: int
 ):
     vols = gecko.exchanges(dex)
-    lag_col = f"{lag_return}H Return"
     vols = metrics.filter_pairs(vols, volume=daily_volume)
     df = metrics.find_rets_24h(vols)
     df = add_volume_marketcap(df)
@@ -114,14 +108,11 @@ def get_high_returns(
     ]
     if df.empty:
         return df
-    # df = df[df["24H Return"] >= 0] # dropping this line in case all tokens have negative returns
     df = metrics.add_7drets(df)
-    df = add_intraday_rets(df, lag_return)
-    df[lag_col] = df[lag_col].apply(lambda x: round(x * 100, 2))
-    # df = df[df[lag_col] >= 0]
-    df = df.sort_values(by=lag_col, ascending=False)
-    df = add_fdv(df)
-    df = add_best_liquidity(df, dex)
+    for lag in {6, 12, lag_return}:
+        add_intraday_rets(df, lag)
+    add_fdv(df)
+    add_best_liquidity(df, dex)
 
     return df
 
@@ -150,7 +141,7 @@ def find_best_return(dex, stoploss, profittaking, lag):
     # df = df.sort_values(by='24H Return',ascending=False)
     df = df[df["24H Return"] >= 0]
     df = metrics.add_7drets(df)
-    df = add_intraday_rets(df, lag)
+    add_intraday_rets(df, lag)
     # df = add_technical_indicators(df)
     df = df.sort_values(by=lag_col, ascending=False)
 
