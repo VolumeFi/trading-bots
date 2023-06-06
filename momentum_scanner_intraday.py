@@ -19,7 +19,7 @@ def token_volume_marketcap(token):
 
 def add_intraday_rets(df, lag):
     df[f"{lag}H Return"] = {
-        token: gecko.coin_return_intraday(token, lag) for token in df.index
+        token: 100 * gecko.coin_return_intraday(token, lag) for token in df.index
     }
 
 
