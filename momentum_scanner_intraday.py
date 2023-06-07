@@ -1,10 +1,15 @@
 import time
-
+import json
 import pandas as pd
 
 import cache_db
 import gecko
 import metrics
+
+network_map_cg = {'Ethereum':'ethereum','BSC':'binance-smart-chain','Polygon':'polygon-pos','Arbitrum':'arbitrum-one'}
+network_map_cgterminal = {'Ethereum':'eth','BSC':'bsc','Polygon':'polygon_pos','Arbitrum':'arbitrum'}
+f = open('dex_chain.json')
+dex_chain = json.load(f)
 
 
 def token_volume_marketcap(token):
@@ -57,6 +62,39 @@ def get_risk_query(token, stoploss=0.05, profittaking=0.05):
     print("enter at:", price, "stop-loss:", slprice, "profit-taking:", ptprice)
     return slprice, ptprice
 
+def find_chain(dex):
+    """
+    find the chain on which a dex is deployed
+    """
+    chain_cg = None
+    chain_cgterminal = None
+    for i in dex_chain:
+        if i['id'] == dex:
+            chain = i['chain']
+            chain_cg = network_map_cg[chain]
+            chain_cgterminal = network_map_cgterminal[chain]
+    return chain_cg, chain_cgterminal
+
+def get_cgterminal_url(chain, contract_addr):
+    return 'https://api.geckoterminal.com/api/v2/networks/'+chain+'/tokens/'+contract_addr+'/pools'
+
+def find_best_reserve(url):
+    """
+    find best reserve via cg-terminal api
+    """
+    re = requests.get(url).json()
+    time.sleep(1) # to avoid hitting cgterminal endpoint's rate limit
+    best_reserve = 0
+    
+    if 'data' not in re.keys():
+        print('bad data')
+        return 0
+    
+    for i in re['data']:
+        reserve = float(i['attributes']['reserve_in_usd'])
+        if reserve > best_reserve:
+            best_reserve = reserve
+    return best_reserve
 
 def find_liquidity(coin, dex):
     for ticker in gecko.query_coin(coin)["tickers"]:
@@ -77,7 +115,9 @@ def find_liquidity(coin, dex):
 def find_best_liquidity(coin, dex):
     best_volume = 0
     best_pair = ""
-    for ticker in gecko.query_coin(coin)["tickers"]:
+    best_reserve = 0
+    re = gecko.query_coin(coin)
+    for ticker in re["tickers"]:
         if ticker["market"]["identifier"] == dex:
             pair = ticker["target_coin_id"] + "<>" + ticker["coin_id"]
             volume = float(ticker["converted_volume"]["usd"])
@@ -85,14 +125,21 @@ def find_best_liquidity(coin, dex):
                 best_pair = pair
                 best_volume = volume
 
-    return best_volume, best_pair
+    chain_cg, chain_cgterminal = find_chain(dex)
+    if chain_cg in re['platforms'].keys():
+        contract_addr = re['platforms'][chain_cg]
+        url = get_cgterminal_url(chain_cgterminal, contract_addr)
+        best_reserve = find_best_reserve(url)
+
+    return best_volume, best_pair, best_reserve
 
 
 def add_best_liquidity(df, dex):
     for token in df.index:
-        best_volume, best_pair = find_best_liquidity(token, dex)
+        best_volume, best_pair,best_reserve = find_best_liquidity(token, dex)
         df.loc[token, "best_volume"] = best_volume
         df.loc[token, "best_pair"] = best_pair
+        df.loc[token, "best_reserve"] = best_reserve
 
 
 def get_high_returns(
