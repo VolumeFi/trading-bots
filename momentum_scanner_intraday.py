@@ -1,15 +1,16 @@
 import time
 import json
 import pandas as pd
-
+import dex_chain
 import cache_db
 import gecko
 import metrics
 
-network_map_cg = {'Ethereum':'ethereum','BSC':'binance-smart-chain','Polygon':'polygon-pos','Arbitrum':'arbitrum-one'}
-network_map_cgterminal = {'Ethereum':'eth','BSC':'bsc','Polygon':'polygon_pos','Arbitrum':'arbitrum'}
-f = open('dex_chain.json')
-dex_chain = json.load(f)
+# NETWORK_MAP_CG: map a network to their CG id
+NETWORK_MAP_CG = {'Ethereum':'ethereum','BSC':'binance-smart-chain','Polygon':'polygon-pos','Arbitrum':'arbitrum-one'}
+# NETWORK_MAP_CGTERMINAL: map a network to their CG id
+NETWORK_MAP_CGTERMINAL = {'Ethereum':'eth','BSC':'bsc','Polygon':'polygon_pos','Arbitrum':'arbitrum'}
+DEX_CHAIN = dex_chain.DEX_CHAIN
 
 
 def token_volume_marketcap(token):
@@ -62,17 +63,17 @@ def get_risk_query(token, stoploss=0.05, profittaking=0.05):
     print("enter at:", price, "stop-loss:", slprice, "profit-taking:", ptprice)
     return slprice, ptprice
 
-def find_chain(dex):
+def lookup(dex):
     """
     find the chain on which a dex is deployed
     """
     chain_cg = None
     chain_cgterminal = None
-    for i in dex_chain:
-        if i['id'] == dex:
-            chain = i['chain']
-            chain_cg = network_map_cg[chain]
-            chain_cgterminal = network_map_cgterminal[chain]
+    for i in DEX_CHAIN:
+        if i == dex:
+            chain = DEX_CHAIN[i]
+            chain_cg = NETWORK_MAP_CG[chain]
+            chain_cgterminal = NETWORK_MAP_CGTERMINAL[chain]
     return chain_cg, chain_cgterminal
 
 def get_cgterminal_url(chain, contract_addr):
@@ -82,19 +83,11 @@ def find_best_reserve(url):
     """
     find best reserve via cg-terminal api
     """
-    re = requests.get(url).json()
+    reserve_data = requests.get(url).json()
     time.sleep(1) # to avoid hitting cgterminal endpoint's rate limit
     best_reserve = 0
     
-    if 'data' not in re.keys():
-        print('bad data')
-        return 0
-    
-    for i in re['data']:
-        reserve = float(i['attributes']['reserve_in_usd'])
-        if reserve > best_reserve:
-            best_reserve = reserve
-    return best_reserve
+    return max(data['attributes']['reserve_in_usd'] for data in reserve_data['data'])
 
 def find_liquidity(coin, dex):
     for ticker in gecko.query_coin(coin)["tickers"]:
@@ -125,8 +118,8 @@ def find_best_liquidity(coin, dex):
                 best_pair = pair
                 best_volume = volume
 
-    chain_cg, chain_cgterminal = find_chain(dex)
-    if chain_cg in re['platforms'].keys():
+    chain_cg, chain_cgterminal = lookup(dex)
+    if chain_cg in re['platforms']:
         contract_addr = re['platforms'][chain_cg]
         url = get_cgterminal_url(chain_cgterminal, contract_addr)
         best_reserve = find_best_reserve(url)
