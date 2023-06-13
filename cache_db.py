@@ -105,7 +105,7 @@ AND (
             """\
 INSERT INTO gecko(path, params, ts, max_age, value)
 VALUES (%s, %s, now(), %s, %s)
-ON CONFLICT (path, params) DO UPDATE 
+ON CONFLICT (path, params) DO UPDATE
 SET
      ts = EXCLUDED.ts,
 max_age = EXCLUDED.max_age,

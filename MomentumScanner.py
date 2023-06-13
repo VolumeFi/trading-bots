@@ -49,12 +49,7 @@ def findbestreturn(dex, stoploss, profittaking, neg7D):
             print("No hot tokens with negative 7D return")
             return
 
-    try:
-        rets24h["7D Return"] = rets24h["7D Return"].apply(
-            lambda x: str(round(x, 2)) + "%"
-        )
-    except:
-        pass
+    rets24h["7D Return"] = rets24h["7D Return"].apply(lambda x: str(round(x, 2)) + "%")
 
     hottoken = rets24h.index[0]
     time.sleep(1)

@@ -1,4 +1,3 @@
-import datetime
 import pandas as pd
 
 
@@ -21,12 +20,22 @@ def return_per_trade(entry_usd, exit_usd):
 
 def get_trades_per_user(user_id):
     """
-    TODO: write this function to query users trades  by their ids in the form defined below 
+    TODO: write this function to query users trades  by their ids in the form defined below
     """
-    trades = {'id1':{'entry_timestamp':'2023-06-12 00:00:00','entry_usd':110,
-                 'exit_timestamp':'2023-06-12 12:00:00','exit_usd':120},
-         'id2':{'entry_timestamp':'2023-06-12 13:00:00','entry_usd':125,
-                 'exit_timestamp':'2023-06-12 23:00:00','exit_usd':120}}
+    trades = {
+        "id1": {
+            "entry_timestamp": "2023-06-12 00:00:00",
+            "entry_usd": 110,
+            "exit_timestamp": "2023-06-12 12:00:00",
+            "exit_usd": 120,
+        },
+        "id2": {
+            "entry_timestamp": "2023-06-12 13:00:00",
+            "entry_usd": 125,
+            "exit_timestamp": "2023-06-12 23:00:00",
+            "exit_usd": 120,
+        },
+    }
 
     return trades
 
@@ -60,5 +69,6 @@ def get_apy(user_id):
         cumret_annual = 0
     return cumret, cumret_annual
 
-if __name__ == '__main__':
-    print(get_apy(''))
+
+if __name__ == "__main__":
+    print(get_apy(""))

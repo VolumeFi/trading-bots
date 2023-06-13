@@ -51,17 +51,14 @@ def add_technical_indicators(df, col_name):
     # col_name = 'MACD_ratio'
     df[col_name] = None
     for i in df.index:
-        try:
-            if col_name == "MACD_ratio":
-                indicator = metrics.token_technical_indicator_macd(i)
-            elif col_name == "RSI":
-                indicator = token_technical_indicator_rsi(i)
-            elif col_name == "BB_updiff":
-                indicator = token_technical_indicator_bollingerband_updiff(i)
-            df.loc[i, col_name] = indicator
-            # time.sleep(0.01)
-        except:
-            df.loc[i, col_name] = None
+        if col_name == "MACD_ratio":
+            indicator = metrics.token_technical_indicator_macd(i)
+        elif col_name == "RSI":
+            indicator = token_technical_indicator_rsi(i)
+        elif col_name == "BB_updiff":
+            indicator = token_technical_indicator_bollingerband_updiff(i)
+        df.loc[i, col_name] = indicator
+        # time.sleep(0.01)
     return df
 
 
