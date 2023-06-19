@@ -72,9 +72,6 @@ def lookup(dex):
             chain_cgterminal = NETWORK_MAP_CGTERMINAL[chain]
     return chain_cg, chain_cgterminal
 
-def get_cgterminal_url(chain, contract_addr):
-    return 'https://api.geckoterminal.com/api/v2/networks/'+chain+'/tokens/'+contract_addr+'/pools'
-
 def find_best_reserve(url):
     """
     find best reserve via cg-terminal api
@@ -117,7 +114,7 @@ def find_best_liquidity(coin, dex):
     chain_cg, chain_cgterminal = lookup(dex)
     if chain_cg in re['platforms']:
         contract_addr = re['platforms'][chain_cg]
-        url = get_cgterminal_url(chain_cgterminal, contract_addr)
+        url = gecko.get_cgterminal_url(chain_cgterminal, contract_addr)
         best_reserve = find_best_reserve(url)
 
     return best_volume, best_pair, best_reserve

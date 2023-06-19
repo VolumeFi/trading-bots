@@ -10,6 +10,7 @@ import cache_db
 
 API_ROOT = "https://pro-api.coingecko.com/api/v3"
 CG_KEY = os.environ["CG_KEY"]
+GT_KEY = os.environ["GT_KEY"]
 
 SESSION: requests.Session = None
 
@@ -128,3 +129,6 @@ def simple_price_1d(coins):
             "include_24hr_change": "true",
         },
     )
+
+def get_cgterminal_url(chain, contract_addr):
+    return 'https://api.geckoterminal.com/api/v2/networks/'+chain+'/tokens/'+contract_addr+'/pools?partner_api_key='+GT_KEY 
