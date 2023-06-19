@@ -13,3 +13,8 @@ DEX_CHAIN = {"pancakeswap_new": "BSC",
              "babyswap": "BSC",
              "uniswap_v2": "Ethereum"
     }
+
+# NETWORK_MAP_CG: map a network to their CG id
+NETWORK_MAP_CG = {'Ethereum':'ethereum','BSC':'binance-smart-chain','Polygon':'polygon-pos','Arbitrum':'arbitrum-one'}
+# NETWORK_MAP_CGTERMINAL: map a network to their CG id
+NETWORK_MAP_CGTERMINAL = {'Ethereum':'eth','BSC':'bsc','Polygon':'polygon_pos','Arbitrum':'arbitrum'}

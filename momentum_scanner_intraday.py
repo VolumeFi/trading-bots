@@ -2,15 +2,11 @@ import time
 import json
 import pandas as pd
 import dex_chain
+from dex_chain import NETWORK_MAP_CG, NETWORK_MAP_CGTERMINAL, DEX_CHAIN
 import cache_db
 import gecko
 import metrics
 
-# NETWORK_MAP_CG: map a network to their CG id
-NETWORK_MAP_CG = {'Ethereum':'ethereum','BSC':'binance-smart-chain','Polygon':'polygon-pos','Arbitrum':'arbitrum-one'}
-# NETWORK_MAP_CGTERMINAL: map a network to their CG id
-NETWORK_MAP_CGTERMINAL = {'Ethereum':'eth','BSC':'bsc','Polygon':'polygon_pos','Arbitrum':'arbitrum'}
-DEX_CHAIN = dex_chain.DEX_CHAIN
 
 
 def token_volume_marketcap(token):
