@@ -65,11 +65,9 @@ def lookup(dex):
     """
     chain_cg = None
     chain_cgterminal = None
-    for i in DEX_CHAIN:
-        if i == dex:
-            chain = DEX_CHAIN[i]
-            chain_cg = NETWORK_MAP_CG[chain]
-            chain_cgterminal = NETWORK_MAP_CGTERMINAL[chain]
+    chain = DEX_CHAIN[dex]
+    chain_cg = NETWORK_MAP_CG[chain]
+    chain_cgterminal = NETWORK_MAP_CGTERMINAL[chain]
     return chain_cg, chain_cgterminal
 
 
