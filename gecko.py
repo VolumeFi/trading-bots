@@ -10,6 +10,8 @@ import cache_db
 
 API_ROOT = "https://pro-api.coingecko.com/api/v3"
 CG_KEY = os.environ["CG_KEY"]
+
+GT_ROOT = "https://api.geckoterminal.com/api/v2/"
 GT_KEY = os.environ["GT_KEY"]
 
 SESSION: requests.Session = None
@@ -38,6 +40,21 @@ def get(*args, params: dict = {}):
         return SESSION.get(
             url,
             params={**params, "x_cg_pro_api_key": CG_KEY},
+            timeout=10,
+        ).json()
+
+    return cache_db.try_cache(path, params, fetch)
+
+
+def get_gt(*args, params: dict = {}):
+    path = "/".join(args)
+
+    def fetch():
+        url = "/".join((GT_ROOT, path))
+        logging.info("%s %s", url, json.dumps(params))
+        return SESSION.get(
+            url,
+            params={**params, "partner_api_key": CG_KEY},
             timeout=10,
         ).json()
 
@@ -131,12 +148,5 @@ def simple_price_1d(coins):
     )
 
 
-def get_cgterminal_url(chain, contract_addr):
-    return (
-        "https://api.geckoterminal.com/api/v2/networks/"
-        + chain
-        + "/tokens/"
-        + contract_addr
-        + "/pools?partner_api_key="
-        + GT_KEY
-    )
+def networks_tokens_pools(chain, contract_addr):
+    return get_gt("networks", chain, "tokens", contract_addr, "pools")

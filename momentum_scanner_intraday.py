@@ -1,11 +1,11 @@
 import time
-import json
+
 import pandas as pd
-import dex_chain
-from dex_chain import NETWORK_MAP_CG, NETWORK_MAP_CGTERMINAL, DEX_CHAIN
+
 import cache_db
 import gecko
 import metrics
+from dex_chain import DEX_CHAIN, NETWORK_MAP_CG, NETWORK_MAP_CGTERMINAL
 
 
 def token_volume_marketcap(token):
@@ -63,29 +63,25 @@ def lookup(dex):
     """
     find the chain on which a dex is deployed
     """
-    chain_cg = None
-    chain_cgterminal = None
     chain = DEX_CHAIN[dex]
     chain_cg = NETWORK_MAP_CG[chain]
     chain_cgterminal = NETWORK_MAP_CGTERMINAL[chain]
     return chain_cg, chain_cgterminal
 
 
-def find_best_reserve(url):
+def find_best_reserve(chain, contract_addr):
     """
     find best reserve via cg-terminal api
     """
-    reserve_data = requests.get(url).json()
-    time.sleep(1)  # to avoid hitting cgterminal endpoint's rate limit
-    best_reserve = 0
-
-    return max(data["attributes"]["reserve_in_usd"] for data in reserve_data["data"])
+    return max(
+        data["attributes"]["reserve_in_usd"]
+        for data in gecko.networks_tokens_pools(chain, contract_addr)["data"]
+    )
 
 
 def find_liquidity(coin, dex):
     for ticker in gecko.query_coin(coin)["tickers"]:
         if ticker["market"]["identifier"] == dex:
-            # print('DEX: ',ticker['market']['identifier'],ticker['volume'])
             print(
                 "DEX: ",
                 ticker["market"]["identifier"],
@@ -114,8 +110,7 @@ def find_best_liquidity(coin, dex):
     chain_cg, chain_cgterminal = lookup(dex)
     if chain_cg in re["platforms"]:
         contract_addr = re["platforms"][chain_cg]
-        url = gecko.get_cgterminal_url(chain_cgterminal, contract_addr)
-        best_reserve = find_best_reserve(url)
+        best_reserve = find_best_reserve(chain_cgterminal, contract_addr)
 
     return best_volume, best_pair, best_reserve
 
