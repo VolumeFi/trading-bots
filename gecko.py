@@ -130,5 +130,13 @@ def simple_price_1d(coins):
         },
     )
 
+
 def get_cgterminal_url(chain, contract_addr):
-    return 'https://api.geckoterminal.com/api/v2/networks/'+chain+'/tokens/'+contract_addr+'/pools?partner_api_key='+GT_KEY 
+    return (
+        "https://api.geckoterminal.com/api/v2/networks/"
+        + chain
+        + "/tokens/"
+        + contract_addr
+        + "/pools?partner_api_key="
+        + GT_KEY
+    )

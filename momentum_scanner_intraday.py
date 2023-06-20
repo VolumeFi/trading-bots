@@ -8,7 +8,6 @@ import gecko
 import metrics
 
 
-
 def token_volume_marketcap(token):
     """
     Days = 100 to make sure we are getting daily values
@@ -59,6 +58,7 @@ def get_risk_query(token, stoploss=0.05, profittaking=0.05):
     print("enter at:", price, "stop-loss:", slprice, "profit-taking:", ptprice)
     return slprice, ptprice
 
+
 def lookup(dex):
     """
     find the chain on which a dex is deployed
@@ -72,15 +72,17 @@ def lookup(dex):
             chain_cgterminal = NETWORK_MAP_CGTERMINAL[chain]
     return chain_cg, chain_cgterminal
 
+
 def find_best_reserve(url):
     """
     find best reserve via cg-terminal api
     """
     reserve_data = requests.get(url).json()
-    time.sleep(1) # to avoid hitting cgterminal endpoint's rate limit
+    time.sleep(1)  # to avoid hitting cgterminal endpoint's rate limit
     best_reserve = 0
-    
-    return max(data['attributes']['reserve_in_usd'] for data in reserve_data['data'])
+
+    return max(data["attributes"]["reserve_in_usd"] for data in reserve_data["data"])
+
 
 def find_liquidity(coin, dex):
     for ticker in gecko.query_coin(coin)["tickers"]:
@@ -112,8 +114,8 @@ def find_best_liquidity(coin, dex):
                 best_volume = volume
 
     chain_cg, chain_cgterminal = lookup(dex)
-    if chain_cg in re['platforms']:
-        contract_addr = re['platforms'][chain_cg]
+    if chain_cg in re["platforms"]:
+        contract_addr = re["platforms"][chain_cg]
         url = gecko.get_cgterminal_url(chain_cgterminal, contract_addr)
         best_reserve = find_best_reserve(url)
 
@@ -122,7 +124,7 @@ def find_best_liquidity(coin, dex):
 
 def add_best_liquidity(df, dex):
     for token in df.index:
-        best_volume, best_pair,best_reserve = find_best_liquidity(token, dex)
+        best_volume, best_pair, best_reserve = find_best_liquidity(token, dex)
         df.loc[token, "best_volume"] = best_volume
         df.loc[token, "best_pair"] = best_pair
         df.loc[token, "best_reserve"] = best_reserve
