@@ -5,6 +5,7 @@ import pandas as pd
 import cache_db
 import gecko
 import metrics
+from dex_chain import DEX_CHAIN, NETWORK_MAP_CG, NETWORK_MAP_CGTERMINAL
 
 
 def token_volume_marketcap(token):
@@ -58,10 +59,29 @@ def get_risk_query(token, stoploss=0.05, profittaking=0.05):
     return slprice, ptprice
 
 
+def lookup(dex):
+    """
+    find the chain on which a dex is deployed
+    """
+    chain = DEX_CHAIN[dex]
+    chain_cg = NETWORK_MAP_CG[chain]
+    chain_cgterminal = NETWORK_MAP_CGTERMINAL[chain]
+    return chain_cg, chain_cgterminal
+
+
+def find_best_reserve(chain, contract_addr):
+    """
+    find best reserve via cg-terminal api
+    """
+    return max(
+        data["attributes"]["reserve_in_usd"]
+        for data in gecko.networks_tokens_pools(chain, contract_addr)["data"]
+    )
+
+
 def find_liquidity(coin, dex):
     for ticker in gecko.query_coin(coin)["tickers"]:
         if ticker["market"]["identifier"] == dex:
-            # print('DEX: ',ticker['market']['identifier'],ticker['volume'])
             print(
                 "DEX: ",
                 ticker["market"]["identifier"],
@@ -77,7 +97,9 @@ def find_liquidity(coin, dex):
 def find_best_liquidity(coin, dex):
     best_volume = 0
     best_pair = ""
-    for ticker in gecko.query_coin(coin)["tickers"]:
+    best_reserve = 0
+    re = gecko.query_coin(coin)
+    for ticker in re["tickers"]:
         if ticker["market"]["identifier"] == dex:
             pair = ticker["target_coin_id"] + "<>" + ticker["coin_id"]
             volume = float(ticker["converted_volume"]["usd"])
@@ -85,14 +107,20 @@ def find_best_liquidity(coin, dex):
                 best_pair = pair
                 best_volume = volume
 
-    return best_volume, best_pair
+    chain_cg, chain_cgterminal = lookup(dex)
+    if chain_cg in re["platforms"]:
+        contract_addr = re["platforms"][chain_cg]
+        best_reserve = find_best_reserve(chain_cgterminal, contract_addr)
+
+    return best_volume, best_pair, best_reserve
 
 
 def add_best_liquidity(df, dex):
     for token in df.index:
-        best_volume, best_pair = find_best_liquidity(token, dex)
+        best_volume, best_pair, best_reserve = find_best_liquidity(token, dex)
         df.loc[token, "best_volume"] = best_volume
         df.loc[token, "best_pair"] = best_pair
+        df.loc[token, "best_reserve"] = best_reserve
 
 
 def get_high_returns(
