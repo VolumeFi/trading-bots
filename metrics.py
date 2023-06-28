@@ -42,6 +42,7 @@ def token_technical_indicator_macd(token):
     macd = (exp_short - exp_long) / exp_long
     return macd.iloc[-1]
 
+
 def token_technical_indicator_rsi(token):
     df = gecko.market_chart(token, days=100)
     prdiff = df["price"].diff().dropna()
@@ -60,6 +61,7 @@ def token_technical_indicator_rsi(token):
     rsi = 100 - (100 / (1 + rs))
 
     return rsi
+
 
 def token_technical_indicator(token):
     df = gecko.market_chart(token, days=100)
@@ -85,6 +87,7 @@ def token_technical_indicator(token):
     rsi = 100 - (100 / (1 + rs))
     indicators["rsi"] = rsi
     return indicators
+
 
 def find_rets_24h(vols):
     main_tokens = {"binance-usd", "wbnb", "weth"}

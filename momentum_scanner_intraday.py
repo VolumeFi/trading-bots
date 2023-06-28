@@ -25,7 +25,7 @@ def add_intraday_rets(df, lag):
 
 
 def add_technical_indicators(df):
-    col_names = ["macd_ratio","rsi"]
+    col_names = ["macd_ratio", "rsi"]
     df[col_names] = None
     for i in df.index:
         indicators = metrics.token_technical_indicator(i)
