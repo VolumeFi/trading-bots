@@ -142,6 +142,7 @@ def get_high_returns(
         add_intraday_rets(df, lag)
     add_fdv(df)
     add_best_liquidity(df, dex)
+    add_technical_indicators(df)
 
     return df
 

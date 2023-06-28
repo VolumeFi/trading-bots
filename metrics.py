@@ -67,7 +67,7 @@ def token_technical_indicator(token):
     exp_short = df["price"].ewm(span=12, adjust=False).mean()
     exp_long = df["price"].ewm(span=26, adjust=False).mean()
     macd = (exp_short - exp_long) / exp_long
-    indicators["macd"] = macd.iloc[-1]
+    indicators["macd_ratio"] = macd.iloc[-1]
 
     prdiff = df["price"].diff().dropna()
     prdiffpos = prdiff[prdiff >= 0]
