@@ -43,6 +43,52 @@ def token_technical_indicator_macd(token):
     return macd.iloc[-1]
 
 
+def token_technical_indicator_rsi(token):
+    df = gecko.market_chart(token, days=100)
+    prdiff = df["price"].diff().dropna()
+    prdiffpos = prdiff[prdiff >= 0]
+    prdiffneg = prdiff[prdiff < 0]
+
+    if len(prdiffpos) > 0:
+        gain_ema = prdiffpos.ewm(span=12, adjust=False).mean().iloc[-1]
+    else:
+        gain_ema = 0
+    if len(prdiffneg) > 0:
+        loss_ema = prdiffneg.ewm(span=12, adjust=False).mean().iloc[-1]
+    else:
+        loss_ema = 1
+    rs = gain_ema / loss_ema
+    rsi = 100 - (100 / (1 + rs))
+
+    return rsi
+
+
+def token_technical_indicator(token):
+    df = gecko.market_chart(token, days=100)
+    indicators = {}
+    exp_short = df["price"].ewm(span=12, adjust=False).mean()
+    exp_long = df["price"].ewm(span=26, adjust=False).mean()
+    macd = (exp_short - exp_long) / exp_long
+    indicators["macd_ratio"] = macd.iloc[-1]
+
+    prdiff = df["price"].diff().dropna()
+    prdiffpos = prdiff[prdiff >= 0]
+    prdiffneg = prdiff[prdiff < 0]
+
+    if len(prdiffpos) > 0:
+        gain_ema = prdiffpos.ewm(span=12, adjust=False).mean().iloc[-1]
+    else:
+        gain_ema = 0
+    if len(prdiffneg) > 0:
+        loss_ema = prdiffneg.ewm(span=12, adjust=False).mean().iloc[-1]
+    else:
+        loss_ema = 1
+    rs = gain_ema / loss_ema
+    rsi = 100 - (100 / (1 + rs))
+    indicators["rsi"] = rsi
+    return indicators
+
+
 def find_rets_24h(vols):
     main_tokens = {"binance-usd", "wbnb", "weth"}
     tokens = set(main_tokens)
