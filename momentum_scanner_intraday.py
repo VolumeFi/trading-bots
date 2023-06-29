@@ -74,10 +74,12 @@ def find_best_reserve(chain, contract_addr):
     """
     find best reserve via cg-terminal api
     """
-    return max(
-        data["attributes"]["reserve_in_usd"]
-        for data in gecko.networks_tokens_pools(chain, contract_addr)["data"]
-    )
+    return None
+# currently not fetching and putting dumy values due to issues
+#    return max(
+#        data["attributes"]["reserve_in_usd"]
+#        for data in gecko.networks_tokens_pools(chain, contract_addr)["data"]
+#    )
 
 
 def find_liquidity(coin, dex):
