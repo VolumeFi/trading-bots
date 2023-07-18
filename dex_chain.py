@@ -12,7 +12,7 @@ DEX_CHAIN = {
     "mdex_bsc": "BSC",
     "babyswap": "BSC",
     "uniswap_v2": "Ethereum",
-    "curve": "Ethereum",
+    "curve_ethereum": "Ethereum",
     "curve_polygon": "Polygon",
 }
 
