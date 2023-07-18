@@ -12,6 +12,8 @@ DEX_CHAIN = {
     "mdex_bsc": "BSC",
     "babyswap": "BSC",
     "uniswap_v2": "Ethereum",
+    "curve": "Ethereum",
+    "curve_polygon": "Polygon",
 }
 
 # NETWORK_MAP_CG: map a network to their CG id
