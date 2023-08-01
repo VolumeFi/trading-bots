@@ -8,3 +8,4 @@
 /momentum_cache.db-wal
 /output.prof
 test.py
+momentum_scanner_intraday_local.py
