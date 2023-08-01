@@ -148,6 +148,29 @@ def get_high_returns(
 
     return df
 
+def get_top_gainers(
+    dex: str, lag_return: int, daily_volume: int, vol_30: int, market_cap: int
+):
+    df = gecko.top_gainers()
+    df = metrics.find_rets_24h(df)
+    df = add_volume_marketcap(df)
+
+    df['dex'] = None
+    for i in df.index:
+        if gecko.filter_tickers(i, dex):
+            df.loc[i,'dex'] = dex
+    df=df[df['dex']==dex]
+
+    if df.empty:
+        return df
+    df = metrics.add_7drets(df)
+    for lag in {6, 12, lag_return}:
+        add_intraday_rets(df, lag)
+    add_fdv(df)
+    #add_best_liquidity(df, dex)
+    add_technical_indicators(df)
+    return df
+
 
 def required_pairs(dex):
     return pd.DataFrame(

@@ -86,6 +86,24 @@ def exchanges_multi(dex, n_item=2):
 
     return df
 
+def filter_tickers(ticker, dex):
+    result = get("coins",ticker,"tickers", params={"vs_currency": "usd"})
+    in_dex = False
+
+    for i in result['tickers']:
+        if dex == i['market']['identifier']:
+            return True
+
+    return in_dex
+
+def top_gainers():
+    result = get("coins","top_gainers_losers", params={"vs_currency": "usd"})
+    df = pd.DataFrame()
+    gainers = result['top_gainers']
+    for i in gainers:
+        df.loc[i['id'],'price'] = i['usd']
+
+    return df
 
 def market_chart(coin, *, days):
     assert days in (1, 100)
