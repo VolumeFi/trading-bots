@@ -113,8 +113,8 @@ def find_best_liquidity(coin, dex):
                 best_volume = volume
 
     chain_cg, chain_cgterminal = lookup(dex)
+
     if chain_cg in re["platforms"]:
-        contract_addr = re["platforms"][chain_cg]
         best_reserve = None
 
     return best_volume, best_pair, best_reserve
