@@ -129,7 +129,7 @@ def add_best_liquidity(df, dex):
 
 
 def get_high_returns(
-        dex: str, lag_return: int, daily_volume: int, vol_30: int, market_cap: int
+    dex: str, lag_return: int, daily_volume: int, vol_30: int, market_cap: int
 ):
     vols = gecko.exchanges(dex)
     vols = metrics.filter_pairs(vols, volume=daily_volume)
@@ -138,7 +138,7 @@ def get_high_returns(
     df = df[
         (df["30_day_mean_volume"] >= vol_30)
         & (df["30_day_mean_marketcap"] >= market_cap)
-        ]
+    ]
     if df.empty:
         return df
     df = metrics.add_7drets(df)
@@ -152,17 +152,17 @@ def get_high_returns(
 
 
 def get_top_gainers(
-        dex: str, lag_return: int, daily_volume: int, vol_30: int, market_cap: int
+    dex: str, lag_return: int, daily_volume: int, vol_30: int, market_cap: int
 ):
     df = gecko.top_gainers()
     df = metrics.find_rets_24h(df)
     df = add_volume_marketcap(df)
 
-    df['dex'] = None
+    df["dex"] = None
     for i in df.index:
         if gecko.filter_tickers(i, dex):
-            df.loc[i, 'dex'] = dex
-    df = df[df['dex'] == dex]
+            df.loc[i, "dex"] = dex
+    df = df[df["dex"] == dex]
 
     if df.empty:
         return df
