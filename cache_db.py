@@ -32,7 +32,7 @@ def connect():
 
 def init():
     global DB_POOL
-    DB_POOL = ConnectionPool("dbname=gecko_cache user=postgres")
+    DB_POOL = ConnectionPool("dbname=momentum_cache user=postgres")
     with DB_POOL.connection() as conn:
         conn.execute(
             """\
