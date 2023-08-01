@@ -70,11 +70,13 @@ def lookup(dex):
     return chain_cg, chain_cgterminal
 
 
-def find_best_reserve(chain, contract_addr):
-    """
-    find best reserve via cg-terminal api
-    """
-    return None
+# def find_best_reserve(chain, contract_addr):
+#     """
+#     find best reserve via cg-terminal api
+#     """
+#     return None
+
+
 # currently not fetching and putting dumy values due to issues
 #    return max(
 #        data["attributes"]["reserve_in_usd"]
@@ -111,9 +113,9 @@ def find_best_liquidity(coin, dex):
                 best_volume = volume
 
     chain_cg, chain_cgterminal = lookup(dex)
+
     if chain_cg in re["platforms"]:
-        contract_addr = re["platforms"][chain_cg]
-        best_reserve = find_best_reserve(chain_cgterminal, contract_addr)
+        best_reserve = None
 
     return best_volume, best_pair, best_reserve
 
@@ -148,6 +150,7 @@ def get_high_returns(
 
     return df
 
+
 def get_top_gainers(
     dex: str, lag_return: int, daily_volume: int, vol_30: int, market_cap: int
 ):
@@ -155,11 +158,11 @@ def get_top_gainers(
     df = metrics.find_rets_24h(df)
     df = add_volume_marketcap(df)
 
-    df['dex'] = None
+    df["dex"] = None
     for i in df.index:
         if gecko.filter_tickers(i, dex):
-            df.loc[i,'dex'] = dex
-    df=df[df['dex']==dex]
+            df.loc[i, "dex"] = dex
+    df = df[df["dex"] == dex]
 
     if df.empty:
         return df
@@ -167,7 +170,7 @@ def get_top_gainers(
     for lag in {6, 12, lag_return}:
         add_intraday_rets(df, lag)
     add_fdv(df)
-    #add_best_liquidity(df, dex)
+    # add_best_liquidity(df, dex)
     add_technical_indicators(df)
     return df
 
