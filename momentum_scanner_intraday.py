@@ -150,6 +150,15 @@ def get_high_returns(
 
     return df
 
+def get_high_returns_cold(
+    dex: str, lag_return: int, daily_volume: int, vol_30: int, market_cap: int
+):
+    vols = gecko.exchanges_cold(dex)
+    vols = metrics.filter_pairs(vols, volume=daily_volume)
+    df = metrics.find_rets_24h_cold(vols)
+
+    return df
+
 
 def get_top_gainers(
     dex: str, lag_return: int, daily_volume: int, vol_30: int, market_cap: int

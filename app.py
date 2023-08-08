@@ -31,6 +31,21 @@ def get_high_returns():
     df.fillna(0, inplace=True)
     return json.dumps(df.to_dict(), sort_keys=True)
 
+@bottle.post("/get_high_returns_cold")
+def get_high_returns_cold():
+    dex = request.json["dex"]
+    lag_return = int(request.json["lag_return"])
+    daily_volume = int(request.json["daily_volume"])
+    market_cap = int(request.json.get("market_cap", 100))
+    vol_30 = int(request.json.get("vol_30", 100))
+    with cache_db.connect():
+        df = momentum_scanner_intraday.get_high_returns_cold(
+            dex, lag_return, daily_volume, vol_30, market_cap
+        )
+    df.dropna(how="all", axis=1, inplace=True)
+    df.fillna(0, inplace=True)
+    return json.dumps(df.to_dict(), sort_keys=True)
+
 
 def main():
     logging.basicConfig(level=logging.INFO)

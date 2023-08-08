@@ -100,6 +100,22 @@ def find_rets_24h(vols):
     rets24h.index.name = "Token name"
     return rets24h
 
+def find_rets_24h_cold(vols):
+    main_tokens = {"binance-usd", "wbnb", "weth"}
+    tokens = set(main_tokens)
+    for pair in vols.index:
+        toks = set(pair.split("<>")) - main_tokens
+        if len(toks) == 1:
+            tokens.update(toks)
+            
+    query = gecko.simple_price_1d_cold(tokens)
+    ret24 = pd.DataFrame()
+    for k in query:
+        ret24.loc[k, "24H Return"] = query[k]["usd_24h_change"]
+    rets24h = ret24
+    rets24h.index.name = "Token name"
+    return rets24h
+
 
 def add_7drets(df):
     df["7D Return"] = None

@@ -120,6 +120,41 @@ max_age = EXCLUDED.max_age,
         )
         CONN.commit()
         return value
+    
+def try_cache_cold(path, params, f):
+    with CONN.cursor() as cur:
+        cur.execute(
+            """\
+SELECT value
+FROM gecko
+WHERE path = %s
+AND params = %s
+""",
+            (path, Jsonb(params), getattr(REFRESH, "use_cache", True)),
+        )
+        value = cur.fetchone()
+        if value is not None:
+            return value[0]
+        value = f()
+        cur.execute(
+            """\
+INSERT INTO gecko(path, params, ts, max_age, value)
+VALUES (%s, %s, now(), %s, %s)
+ON CONFLICT (path, params) DO UPDATE
+SET
+     ts = EXCLUDED.ts,
+max_age = EXCLUDED.max_age,
+  value = EXCLUDED.value
+""",
+            (
+                path,
+                Jsonb(params),
+                3 * WARM_INTERVAL + timedelta(minutes=5),
+                Jsonb(value),
+            ),
+        )
+        CONN.commit()
+        return value
 
 
 def get_pairs(dex):

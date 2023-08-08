@@ -45,6 +45,20 @@ def get(*args, params: dict = {}):
 
     return cache_db.try_cache(path, params, fetch)
 
+def get_cold(*args, params: dict = {}):
+    path = "/".join(args)
+
+    def fetch():
+        url = "/".join((API_ROOT, path))
+        logging.info("%s %s", url, json.dumps(params))
+        return SESSION.get(
+            url,
+            params={**params, "x_cg_pro_api_key": CG_KEY},
+            timeout=10,
+        ).json()
+
+    return cache_db.try_cache_cold(path, params, fetch)
+
 
 def get_gt(*args, params: dict = {}):
     path = "/".join(args)
@@ -68,6 +82,19 @@ def exchanges(dex):
             "volume": ticker["converted_volume"]["usd"],
         }
         for ticker in get("exchanges", dex)["tickers"]
+    ]
+    df = pd.DataFrame(data)
+    df.set_index("pair", inplace=True)
+    df.index.name = "pair"
+    return df
+
+def exchanges_cold(dex):
+    data = [
+        {
+            "pair": ticker["coin_id"] + "<>" + ticker["target_coin_id"],
+            "volume": ticker["converted_volume"]["usd"],
+        }
+        for ticker in get_cold("exchanges", dex)["tickers"]
     ]
     df = pd.DataFrame(data)
     df.set_index("pair", inplace=True)
@@ -159,6 +186,17 @@ def query_coins_markets(coins):
 
 def simple_price_1d(coins):
     return get(
+        "simple",
+        "price",
+        params={
+            "ids": ",".join(sorted(coins)),
+            "vs_currencies": "usd",
+            "include_24hr_change": "true",
+        },
+    )
+
+def simple_price_1d_cold(coins):
+    return get_cold(
         "simple",
         "price",
         params={
