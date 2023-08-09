@@ -107,6 +107,14 @@ def top_gainers():
 
     return df
 
+def new_listing():
+    result = get("coins", "list","new")
+    df = pd.DataFrame()
+    for i in result:
+        df.loc[i["id"], "price"] = 1
+
+    return df
+
 
 def market_chart(coin, *, days):
     assert days in (1, 100)

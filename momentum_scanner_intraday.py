@@ -174,6 +174,12 @@ def get_top_gainers(
     add_technical_indicators(df)
     return df
 
+def get_new_listing():
+    df = gecko.new_listing()
+    df = add_volume_marketcap(df)
+
+    return df
+
 
 def required_pairs(dex):
     return pd.DataFrame(
