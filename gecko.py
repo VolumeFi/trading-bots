@@ -112,6 +112,7 @@ def new_listing():
     df = pd.DataFrame()
     for i in result:
         df.loc[i["id"], "price"] = 1
+        df.loc[i["id"], "activated_at"] = i["activated_at"]
 
     return df
 
