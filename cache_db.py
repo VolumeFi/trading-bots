@@ -13,7 +13,7 @@ REFRESH = threading.local()
 CONN = threading.local()
 
 WARM_DEXES = ("pancakeswap_new", "uniswap_v2", "uniswap_v3")
-WARM_INTERVAL = timedelta(hours=1)
+WARM_INTERVAL = timedelta(hours=24)
 
 
 @contextmanager
